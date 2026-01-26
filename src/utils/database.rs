@@ -1,4 +1,5 @@
 use std::fs::File;
+use rand::seq::SliceRandom;
 
 pub type OriginalSentence = String;
 pub type Translation = String;
@@ -14,8 +15,15 @@ impl Database {
         Ok(Database { records })
     }
 
-    pub fn get_records(&self) -> Records {
-        self.records.clone()
+    pub fn get_random(&self, limit: Option<usize>, offset: Option<usize>) -> Records {
+        let mut records = self.records.clone();
+        let mut random_generator = rand::rng();
+        records.shuffle(&mut random_generator);
+
+        match limit {
+            Some(n) => records.iter().cloned().skip(offset.unwrap_or(0)).take(n).collect(),
+            None => records,
+        }
     }
 
     fn from_csv(path: &str) -> anyhow::Result<Records> {
