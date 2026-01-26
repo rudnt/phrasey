@@ -11,6 +11,7 @@ pub struct Database {
 
 impl Database {
     pub fn new(filepath: &str) -> anyhow::Result<Self> {
+        // TODO use SQLite, divide per language, include metadata, etc.
         let records = Database::from_csv(filepath)?;
         Ok(Database { records })
     }
@@ -26,6 +27,7 @@ impl Database {
         }
     }
 
+    // TODO use it as tool to read new data into DB
     fn from_csv(path: &str) -> anyhow::Result<Records> {
         let mut records = Vec::new();
         let file = File::open(path)?;
@@ -41,7 +43,7 @@ impl Database {
                 records.push((key, value));
                 log::debug!("Row added: {:?}", record);
             } else {
-                log::debug!("Row skipped: {:?}", record);
+                log::warn!("Row skipped: {:?}", record);
             }
         }
 

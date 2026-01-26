@@ -2,21 +2,27 @@ mod utils;
 use utils::database::Database;
 
 fn main() -> anyhow::Result<()> {
+    // TODO read db path from config
     let db = Database::new("db.csv")?;
+    // TODO read limit from config
+    let increment = 5;
+    let mut limit = increment;
     let mut offset = 0;
-    let mut limit = 5;
     
+    // TODO make UI nice-looking all over the place, use colors, etc.
     println!("Hi there! It's Phrasey! Let's practice!\n");
+    // TODO add exit option (shortcut, configurable)
     loop {
-        let mut sentences = db.get_random(Some(limit), Some(offset)).clone();
+        let mut sentences = db.get_random(Some(limit), Some(offset));
         let mut current: usize = 0;
 
         println!("New round! Translate the following sentences:\n");
         while !sentences.is_empty() {
+            // Clear the screen below New round line
             let (original, translation) = &sentences[current];
 
             println!("Sentence: {}", original);
-            println!("Your translation:");
+            println!("Your translation:"); // TODO make it inline input
     
             let mut answer = String::new();
             std::io::stdin().read_line(&mut answer)?;
@@ -36,9 +42,10 @@ fn main() -> anyhow::Result<()> {
         let mut play_again = String::new();
         std::io::stdin().read_line(&mut play_again)?;
 
-        if play_again.trim().to_lowercase() == "yes"{
+        // TODO correct is y/yes
+        if play_again.trim().to_lowercase() == "[y]es"{
             offset += limit;
-            limit += 5;
+            limit += increment;
         } else {
             break;
         }
