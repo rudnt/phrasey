@@ -1,3 +1,5 @@
+use std::io::Write;
+
 mod utils;
 use utils::database::Database;
 
@@ -22,7 +24,8 @@ fn main() -> anyhow::Result<()> {
             let (original, translation) = &sentences[current];
 
             println!("Sentence: {}", original);
-            println!("Your translation:"); // TODO make it inline input
+            print!("Your translation: ");
+            std::io::stdout().flush()?;
     
             let mut answer = String::new();
             std::io::stdin().read_line(&mut answer)?;
@@ -38,12 +41,14 @@ fn main() -> anyhow::Result<()> {
             current = current % sentences.len().max(1);
         }
 
-        println!("Round completed! Do you want to play again? (yes/no): ");
+        print!("Round completed! Do you want to play again? (yes/no): ");
+        std::io::stdout().flush()?;
+
         let mut play_again = String::new();
         std::io::stdin().read_line(&mut play_again)?;
 
         // TODO correct is y/yes
-        if play_again.trim().to_lowercase() == "[y]es"{
+        if play_again.trim().to_lowercase() == "yes"{
             offset += limit;
             limit += increment;
         } else {
