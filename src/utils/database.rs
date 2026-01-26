@@ -16,13 +16,13 @@ impl Database {
         Ok(Database { records })
     }
 
-    pub fn get_random(&self, limit: Option<usize>, offset: Option<usize>) -> Records {
+    pub fn get_random(&self, limit: Option<usize>) -> Records {
         let mut records = self.records.clone();
         let mut random_generator = rand::rng();
         records.shuffle(&mut random_generator);
 
         match limit {
-            Some(n) => records.iter().cloned().skip(offset.unwrap_or(0)).take(n).collect(),
+            Some(n) => records.iter().cloned().take(n).collect(),
             None => records,
         }
     }

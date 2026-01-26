@@ -7,15 +7,13 @@ fn main() -> anyhow::Result<()> {
     // TODO read db path from config
     let db = Database::new("db.csv")?;
     // TODO read limit from config
-    let increment = 5;
-    let mut limit = increment;
-    let mut offset = 0;
+    let limit = 1;
     
     // TODO make UI nice-looking all over the place, use colors, etc.
     println!("Hi there! It's Phrasey! Let's practice!\n");
     // TODO add exit option (shortcut, configurable)
     loop {
-        let mut sentences = db.get_random(Some(limit), Some(offset));
+        let mut sentences = db.get_random(Some(limit));
         let mut current: usize = 0;
 
         println!("New round! Translate the following sentences:\n");
@@ -41,17 +39,13 @@ fn main() -> anyhow::Result<()> {
             current = current % sentences.len().max(1);
         }
 
-        print!("Round completed! Do you want to play again? (yes/no): ");
+        print!("Round completed! Do you want to play again? ([Y]es/no): ");
         std::io::stdout().flush()?;
 
         let mut play_again = String::new();
         std::io::stdin().read_line(&mut play_again)?;
 
-        // TODO correct is y/yes
-        if play_again.trim().to_lowercase() == "yes"{
-            offset += limit;
-            limit += increment;
-        } else {
+        if !vec!["y", "yes"].contains(&play_again.trim().to_lowercase().as_str()) {
             break;
         }
     }
