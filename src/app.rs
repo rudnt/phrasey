@@ -15,6 +15,16 @@ impl App {
         // TODO read limit from config
         let limit = 1;
 
+        match self.game_loop(&db, limit) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                eprintln!("Error during game loop: {}", e);
+                Err(e)
+            }
+        }
+    }
+
+    fn game_loop(&self, db: &Database, limit: usize) -> anyhow::Result<()> {
         // TODO make UI nice-looking all over the place, use colors, etc.
         println!("Hi there! It's Phrasey! Let's practice!\n");
         // TODO add exit option (shortcut, configurable)

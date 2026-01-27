@@ -5,5 +5,11 @@ use crate::app::App;
 
 fn main() -> anyhow::Result<()> {
     let app = App::new();
-    app.main_loop()
+    match app.main_loop() {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            Err(e)
+        }
+    }
 }
