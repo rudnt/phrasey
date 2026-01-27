@@ -1,12 +1,15 @@
 use std::io::Write;
 
+use crate::config::Config;
 use crate::utils::database::{Database, Records};
 
-pub struct App;
+pub struct App {
+    config: Config,
+}
 
 impl App {
-    pub fn new() -> Self {
-        App
+    pub fn new(config: Config) -> Self {
+        App { config }
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
@@ -14,13 +17,12 @@ impl App {
             self.render_main_menu();
             let choice = self.get_input("Your choice: ")?;
 
-            let _ = match choice.as_str() {
+            match choice.as_str() {
                 "" => {
-                    match self.run_game()? {
-                        true => break Ok(()),
-                        false => (),
+                    if self.run_game()? {
+                        break Ok(());
                     }
-                },
+                }
                 // TODO add options to change settings, view & edit database, etc.
                 "q" | "quit" => {
                     println!("\nGoodbye!");
@@ -30,7 +32,7 @@ impl App {
                     println!("\nWhat did you mean by '{}'? Please try again.", choice);
                     break self.run();
                 }
-            };
+            }
         }
     }
 
@@ -43,7 +45,7 @@ impl App {
         println!("What do you want to do?\n");
         println!("[Enter] Start a new game");
         println!("[q]     Quit\n");
-}
+    }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<String> {
         print!("{}", msg);
@@ -55,13 +57,18 @@ impl App {
         Ok(input.trim().to_lowercase().to_string())
     }
 
+    /// Runs the main game logic, managing the game loop and player interactions.
+    ///
+    /// # Returns
+    ///
+    /// Returns `Ok(true)` if the player chooses to quit after a round, `Ok(false)` if they choose to play again,
+    /// or an `Err` if an error occurs during the game loop.
     fn run_game(&self) -> anyhow::Result<bool> {
         // TODO read db path from config
-        let db = Database::new("db.csv")?;
+        let db = Database::new(&self.config.database_path)?;
         // TODO read limit from config
-        let limit = 1;
 
-        match self.game_loop(&db, limit) {
+        match self.game_loop(&db, self.config.phrases_per_round) {
             Ok(x) => Ok(x),
             Err(e) => {
                 eprintln!("Error during game loop: {}", e);
@@ -70,10 +77,10 @@ impl App {
         }
     }
 
-    fn game_loop(&self, db: &Database, limit: usize) -> anyhow::Result<bool> {
+    fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
         // TODO add exit option (shortcut, configurable)
         loop {
-            self.start_round(db.get_random(Some(limit)))?;
+            self.start_round(db.get_random(Some(phrases_per_round)))?;
 
             let msg = "Round completed! Do you want to play again? (yes/no/quit): ";
             let choice = self.get_input(msg)?;
