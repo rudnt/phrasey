@@ -9,7 +9,35 @@ impl App {
         App
     }
 
-    pub fn main_loop(&self) -> anyhow::Result<()> {
+    pub fn run(&self) -> anyhow::Result<()> {
+        self.render_main_menu();
+        let choice = self.get_user_input()?;
+
+        match choice.as_str() {
+            "" => self.run_game(),
+            _ => {
+                println!("Unknown option: {}", choice);
+                Ok(())
+            }
+        }
+    }
+
+    fn render_main_menu(&self) {
+        // TODO make UI nice-looking all over the place, use colors, etc.
+        println!("====================================");
+        println!("        Welcome to Phrasey     ");
+        println!("  Your command-line phrase trainer  ");
+        println!("====================================\n\n");
+        println!("  Press Enter to start...");
+    }
+
+    fn get_user_input(&self) -> anyhow::Result<String> {
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        Ok(input.trim().to_lowercase().to_string())
+    }
+
+    fn run_game(&self) -> anyhow::Result<()> {
         // TODO read db path from config
         let db = Database::new("db.csv")?;
         // TODO read limit from config
@@ -25,8 +53,6 @@ impl App {
     }
 
     fn game_loop(&self, db: &Database, limit: usize) -> anyhow::Result<()> {
-        // TODO make UI nice-looking all over the place, use colors, etc.
-        println!("Hi there! It's Phrasey! Let's practice!\n");
         // TODO add exit option (shortcut, configurable)
         loop {
             self.start_round(db.get_random(Some(limit)))?;
@@ -34,10 +60,8 @@ impl App {
             print!("Round completed! Do you want to play again? ([Y]es/no): ");
             std::io::stdout().flush()?;
 
-            let mut play_again = String::new();
-            std::io::stdin().read_line(&mut play_again)?;
-
-            if !["y", "yes"].contains(&play_again.trim().to_lowercase().as_str()) {
+            let play_again = self.get_user_input()?;
+            if !["y", "yes"].contains(&play_again.as_str()) {
                 break;
             }
         }
