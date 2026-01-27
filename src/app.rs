@@ -21,6 +21,7 @@ impl App {
                         false => (),
                     }
                 },
+                // TODO add options to change settings, view & edit database, etc.
                 "q" | "quit" => {
                     println!("\nGoodbye!");
                     break Ok(());
