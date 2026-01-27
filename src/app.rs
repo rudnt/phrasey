@@ -11,29 +11,39 @@ impl App {
 
     pub fn run(&self) -> anyhow::Result<()> {
         self.render_main_menu();
-        let choice = self.get_user_input()?;
+        let choice = self.get_input("Your choice: ")?;
 
         match choice.as_str() {
             "" => self.run_game(),
-            _ => {
-                println!("Unknown option: {}", choice);
+            "q" | "quit" => {
+                println!("\nGoodbye!");
                 Ok(())
+            }
+            _ => {
+                println!("\nWhat did you mean by '{}'? Please try again.", choice);
+                self.run()
             }
         }
     }
 
     fn render_main_menu(&self) {
         // TODO make UI nice-looking all over the place, use colors, etc.
-        println!("====================================");
+        println!("\n\n====================================");
         println!("        Welcome to Phrasey     ");
         println!("  Your command-line phrase trainer  ");
         println!("====================================\n\n");
-        println!("  Press Enter to start...");
-    }
+        println!("What do you want to do?\n");
+        println!("[Enter] Start a new game");
+        println!("[q]     Quit\n");
+}
 
-    fn get_user_input(&self) -> anyhow::Result<String> {
+    fn get_input(&self, msg: &str) -> anyhow::Result<String> {
+        print!("{}", msg);
+        std::io::stdout().flush()?;
+
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
+
         Ok(input.trim().to_lowercase().to_string())
     }
 
@@ -57,10 +67,9 @@ impl App {
         loop {
             self.start_round(db.get_random(Some(limit)))?;
 
-            print!("Round completed! Do you want to play again? ([Y]es/no): ");
-            std::io::stdout().flush()?;
+            let msg = "Round completed! Do you want to play again? ([Y]es/no): ";
+            let play_again = self.get_input(msg)?;
 
-            let play_again = self.get_user_input()?;
             if !["y", "yes"].contains(&play_again.as_str()) {
                 break;
             }
@@ -70,7 +79,7 @@ impl App {
     }
 
     fn start_round(&self, mut sentences: Records) -> anyhow::Result<()> {
-        println!("New round! Translate the following sentences:\n");
+        println!("\nNew round! Translate the following sentences:\n");
 
         let mut current: usize = 0;
         while !sentences.is_empty() {
