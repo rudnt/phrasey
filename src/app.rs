@@ -10,19 +10,26 @@ impl App {
     }
 
     pub fn run(&self) -> anyhow::Result<()> {
-        self.render_main_menu();
-        let choice = self.get_input("Your choice: ")?;
+        loop {
+            self.render_main_menu();
+            let choice = self.get_input("Your choice: ")?;
 
-        match choice.as_str() {
-            "" => self.run_game(),
-            "q" | "quit" => {
-                println!("\nGoodbye!");
-                Ok(())
-            }
-            _ => {
-                println!("\nWhat did you mean by '{}'? Please try again.", choice);
-                self.run()
-            }
+            let _ = match choice.as_str() {
+                "" => {
+                    match self.run_game()? {
+                        true => break Ok(()),
+                        false => (),
+                    }
+                },
+                "q" | "quit" => {
+                    println!("\nGoodbye!");
+                    break Ok(());
+                }
+                _ => {
+                    println!("\nWhat did you mean by '{}'? Please try again.", choice);
+                    break self.run();
+                }
+            };
         }
     }
 
@@ -47,14 +54,14 @@ impl App {
         Ok(input.trim().to_lowercase().to_string())
     }
 
-    fn run_game(&self) -> anyhow::Result<()> {
+    fn run_game(&self) -> anyhow::Result<bool> {
         // TODO read db path from config
         let db = Database::new("db.csv")?;
         // TODO read limit from config
         let limit = 1;
 
         match self.game_loop(&db, limit) {
-            Ok(_) => Ok(()),
+            Ok(x) => Ok(x),
             Err(e) => {
                 eprintln!("Error during game loop: {}", e);
                 Err(e)
@@ -62,20 +69,20 @@ impl App {
         }
     }
 
-    fn game_loop(&self, db: &Database, limit: usize) -> anyhow::Result<()> {
+    fn game_loop(&self, db: &Database, limit: usize) -> anyhow::Result<bool> {
         // TODO add exit option (shortcut, configurable)
         loop {
             self.start_round(db.get_random(Some(limit)))?;
 
-            let msg = "Round completed! Do you want to play again? ([Y]es/no): ";
-            let play_again = self.get_input(msg)?;
+            let msg = "Round completed! Do you want to play again? (yes/no/quit): ";
+            let choice = self.get_input(msg)?;
 
-            if !["y", "yes"].contains(&play_again.as_str()) {
-                break;
+            match choice.as_str() {
+                "y" | "yes" => (),
+                "q" | "quit" => break Ok(true),
+                _ => break Ok(false),
             }
         }
-
-        Ok(())
     }
 
     fn start_round(&self, mut sentences: Records) -> anyhow::Result<()> {
