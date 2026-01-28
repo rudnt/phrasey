@@ -1,4 +1,5 @@
 use anyhow::Context;
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -10,10 +11,16 @@ pub struct Config {
 
 impl Config {
     pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
+        let config = Config::build(path)?;
+        config.validate()?;
+        Ok(config)
+    }
+
+    fn build<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let builder = config::Config::builder().add_source(config::File::from(path.as_ref()));
         let cfg = builder.build().context("Failed to build configuration")?;
         let config: Config = cfg.try_deserialize().context("Failed to deserialize configuration")?;
-        config.validate()?;
+        debug!("Configuration built");
         Ok(config)
     }
 
@@ -26,6 +33,7 @@ impl Config {
             anyhow::bail!("Phrases per round must be greater than zero.");
         }
 
+        debug!("Configuration validated");
         Ok(())
     }
 }

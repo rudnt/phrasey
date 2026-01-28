@@ -1,3 +1,4 @@
+use log::{debug, error, info};
 use std::io::Write;
 
 use crate::config::Config;
@@ -19,17 +20,21 @@ impl App {
 
             match choice.as_str() {
                 "" => {
+                    debug!("User chose to start a new game");
                     if self.run_game()? {
+                        debug!("User chose to quit after game");
                         break Ok(());
                     }
                 }
                 // TODO add options to change settings, view & edit database, etc.
                 "q" | "quit" => {
                     println!("\nGoodbye!");
+                    debug!("User chose to quit the application with {}", choice);
                     break Ok(());
                 }
                 _ => {
                     println!("\nWhat did you mean by '{}'? Please try again.", choice);
+                    debug!("Unrecognized input in main menu: {}", choice);
                     break self.run();
                 }
             }
@@ -45,6 +50,7 @@ impl App {
         println!("What do you want to do?\n");
         println!("[Enter] Start a new game");
         println!("[q]     Quit\n");
+        debug!("Main menu rendered");
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<String> {
@@ -53,8 +59,10 @@ impl App {
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input)?;
+        // TODO: sanitize input
 
-        Ok(input.trim().to_lowercase().to_string())
+        debug!("User input received: {}", input);
+        Ok(input.trim().to_lowercase())
     }
 
     /// Runs the main game logic, managing the game loop and player interactions.
@@ -66,18 +74,21 @@ impl App {
     fn run_game(&self) -> anyhow::Result<bool> {
         // TODO read db path from config
         let db = Database::new(&self.config.database_uri)?;
+        debug!("Database loaded");
         // TODO read limit from config
 
         match self.game_loop(&db, self.config.phrases_per_round) {
             Ok(x) => Ok(x),
             Err(e) => {
                 eprintln!("Error during game loop: {}", e);
+                error!("Error during game loop: {}", e);
                 Err(e)
             }
         }
     }
 
     fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
+        info!("Game loop started.");
         // TODO add exit option (shortcut, configurable)
         loop {
             self.start_round(db.get_random(Some(phrases_per_round)))?;
@@ -86,15 +97,25 @@ impl App {
             let choice = self.get_input(msg)?;
 
             match choice.as_str() {
-                "y" | "yes" => (),
-                "q" | "quit" => break Ok(true),
-                _ => break Ok(false),
+                "y" | "yes" => {
+                    debug!("User chose to play another round with {}", choice);
+                    ()
+                }
+                "q" | "quit" => {
+                    debug!("User chose to quit the game with {}", choice);
+                    break Ok(true)
+                }
+                _ => {
+                    debug!("User chose to come back to main menu with {}", choice);
+                    break Ok(false)
+                }
             }
         }
     }
 
     fn start_round(&self, mut sentences: Records) -> anyhow::Result<()> {
         println!("\nNew round! Translate the following sentences:\n");
+        debug!("Starting a new round with {} sentence(s)", sentences.len());
 
         let mut current: usize = 0;
         while !sentences.is_empty() {
@@ -102,23 +123,22 @@ impl App {
             let (original, translation) = &sentences[current];
 
             println!("Sentence: {}", original);
-            print!("Your translation: ");
-            std::io::stdout().flush()?;
+            let answer = self.get_input("Your translation: ")?;
 
-            let mut answer = String::new();
-            std::io::stdin().read_line(&mut answer)?;
-
-            if answer.trim().to_lowercase() == translation.trim().to_lowercase() {
+            if answer == translation.trim().to_lowercase() {
                 println!("Correct!\n");
+                debug!("Correct answer: original = '{}', translation = '{}'", original, translation);
                 sentences.remove(current);
             } else {
-                println!("Incorrect! The correct translation is: {}\n", translation);
+                println!("Wrong! The correct translation is: {}\n", translation);
+                debug!("Wrong answer: original = '{}', translation = '{}'", original, translation);
                 current += 1;
             }
 
             current %= sentences.len().max(1);
         }
 
+        debug!("Round completed successfully with {} sentence(s)", sentences.len());
         Ok(())
     }
 }
