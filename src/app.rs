@@ -65,7 +65,7 @@ impl App {
     /// or an `Err` if an error occurs during the game loop.
     fn run_game(&self) -> anyhow::Result<bool> {
         // TODO read db path from config
-        let db = Database::new(&self.config.database_path)?;
+        let db = Database::new(&self.config.database_uri)?;
         // TODO read limit from config
 
         match self.game_loop(&db, self.config.phrases_per_round) {

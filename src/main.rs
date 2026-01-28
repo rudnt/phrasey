@@ -6,10 +6,7 @@ use crate::app::App;
 use crate::config::Config;
 
 fn main() -> anyhow::Result<()> {
-    let config = Config {
-        database_path: "db.csv".to_string(),
-        phrases_per_round: 1,
-    };
+    let config = Config::load("config.toml")?;
     let app = App::new(config);
     match app.run() {
         Ok(_) => Ok(()),
