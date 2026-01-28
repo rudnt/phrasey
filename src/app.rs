@@ -1,5 +1,10 @@
+use crossterm::{
+    event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
+    terminal::{disable_raw_mode, enable_raw_mode},
+};
 use log::{debug, error, info};
 use std::io::Write;
+use std::time::Duration;
 
 use crate::config::Config;
 use crate::utils::database::{Database, Records};
@@ -28,10 +33,13 @@ impl App {
                 }
                 "s" | "settings" => {
                     debug!("User chose settings with {}", choice);
-                    self.run_settings()?;
+                    if self.run_settings()? {
+                        debug!("User chose to quit after game");
+                        break Ok(());
+                    }
                 }
                 // TODO add options to change settings, view & edit database, etc.
-                "q" | "quit" => {
+                "q" | "quit" | "__!quit!__" => {
                     debug!("User chose to quit the application with {}", choice);
                     println!("\nGoodbye!");
                     break Ok(());
@@ -62,12 +70,40 @@ impl App {
         print!("{}", msg);
         std::io::stdout().flush()?;
 
+        enable_raw_mode()?;
         let mut input = String::new();
-        std::io::stdin().read_line(&mut input)?;
-        // TODO: sanitize input
-
-        debug!("User input received: {}", input);
-        Ok(input.trim().to_lowercase())
+        
+        loop {
+            if event::poll(Duration::from_millis(100))? {
+                if let Event::Key(KeyEvent { code, modifiers, ..}) = event::read()? {
+                    if (modifiers.contains(KeyModifiers::CONTROL)) 
+                        && code == KeyCode::Char('d') {
+                        debug!("User triggered quit shortcut during input");
+                        disable_raw_mode()?;
+                        return Ok("__!quit!__".to_string());
+                    } 
+                    
+                    match code {
+                        KeyCode::Enter => {
+                            debug!("User finished input: {}", input);
+                            disable_raw_mode()?;
+                            return Ok(input.trim().to_lowercase());
+                        }
+                        KeyCode::Char(c) => {
+                            input.push(c);
+                            print!("{}", c);
+                            std::io::stdout().flush()?;
+                        }
+                        KeyCode::Backspace => {
+                            input.pop();
+                            print!("\x08 \x08");
+                            std::io::stdout().flush()?;
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
     /// Runs the main game logic, managing the game loop and player interactions.
@@ -107,8 +143,9 @@ impl App {
                     debug!("User chose to play another round with {}", choice);
                     ()
                 }
-                "q" | "quit" => {
+                "q" | "quit" | "__!quit!__" => {
                     debug!("User chose to quit the game with {}", choice);
+                    println!("\nGoodbye!\n");
                     break Ok(true)
                 }
                 _ => {
@@ -131,12 +168,17 @@ impl App {
             println!("Sentence: {}", original);
             let answer = self.get_input("Your translation: ")?;
 
-            if answer == translation.trim().to_lowercase() {
-                println!("Correct!\n");
+            if answer == "__!quit!__" {
+                debug!("User triggered quit shortcut during round");
+                println!("\nGoodbye!\n");
+                break;
+            }
+            else if answer == translation.trim().to_lowercase() {
+                println!("\nCorrect!\n");
                 debug!("Correct answer: original = '{}', translation = '{}'", original, translation);
                 sentences.remove(current);
             } else {
-                println!("Wrong! The correct translation is: {}\n", translation);
+                println!("\nWrong! The correct translation is: {}\n", translation);
                 debug!("Wrong answer: original = '{}', translation = '{}'", original, translation);
                 current += 1;
             }
@@ -144,11 +186,11 @@ impl App {
             current %= sentences.len().max(1);
         }
 
-        debug!("Round completed successfully with {} sentence(s)", sentences.len());
+        debug!("Round completed");
         Ok(())
     }
 
-    fn run_settings(&mut self) -> anyhow::Result<()> {
+    fn run_settings(&mut self) -> anyhow::Result<bool> {
         let mut new_db = None;
         let mut new_phrases_per_round = None;
         loop {
@@ -186,12 +228,17 @@ impl App {
                     }
                     println!("Settings saved.\n");
                     info!("Settings saved.");
-                    break Ok(());
+                    break Ok(false);
                 }
                 "q" | "quit" => {
                     debug!("User chose to quit the settings menu");
                     println!("\nExiting settings menu.\n");
-                    break Ok(());
+                    break Ok(false);
+                }
+                "__!quit!__" => {
+                    debug!("User triggered quit shortcut during settings menu");
+                    println!("\nGoodbye!\n");
+                    break Ok(true);
                 }
                 _ => {
                     debug!("Unrecognized input in settings menu");
