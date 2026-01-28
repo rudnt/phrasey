@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
     
     let config = Config::load("config.toml")?;
-    let app = App::new(config);
+    let mut app = App::new(config);
     match app.run() {
         Ok(_) => Ok(()),
         Err(e) => {

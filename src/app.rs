@@ -13,7 +13,7 @@ impl App {
         App { config }
     }
 
-    pub fn run(&self) -> anyhow::Result<()> {
+    pub fn run(&mut self) -> anyhow::Result<()> {
         loop {
             self.render_main_menu();
             let choice = self.get_input("Your choice: ")?;
@@ -26,15 +26,19 @@ impl App {
                         break Ok(());
                     }
                 }
+                "s" | "settings" => {
+                    debug!("User chose settings with {}", choice);
+                    self.run_settings()?;
+                }
                 // TODO add options to change settings, view & edit database, etc.
                 "q" | "quit" => {
-                    println!("\nGoodbye!");
                     debug!("User chose to quit the application with {}", choice);
+                    println!("\nGoodbye!");
                     break Ok(());
                 }
                 _ => {
-                    println!("\nWhat did you mean by '{}'? Please try again.", choice);
                     debug!("Unrecognized input in main menu: {}", choice);
+                    println!("\nWhat did you mean by '{}'? Please try again.", choice);
                     break self.run();
                 }
             }
@@ -49,6 +53,7 @@ impl App {
         println!("====================================\n\n");
         println!("What do you want to do?\n");
         println!("[Enter] Start a new game");
+        println!("[s]     Settings");
         println!("[q]     Quit\n");
         debug!("Main menu rendered");
     }
@@ -85,6 +90,7 @@ impl App {
                 Err(e)
             }
         }
+        // TODO think about a better way to handle quiting
     }
 
     fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
@@ -140,5 +146,58 @@ impl App {
 
         debug!("Round completed successfully with {} sentence(s)", sentences.len());
         Ok(())
+    }
+
+    fn run_settings(&mut self) -> anyhow::Result<()> {
+        let mut new_db = None;
+        let mut new_phrases_per_round = None;
+        loop {
+            println!("\nSettings menu\n");
+            println!("[d] Database URI: {}", self.config.database_uri);
+            println!("[p] Phrases per round: {}", self.config.phrases_per_round);
+            println!("[s] Save\n");
+            println!("[q] Quit\n");
+    
+            let choice = self.get_input("Your choice: ")?;
+            match choice.as_str() {
+                "d" | "database" => {
+                    debug!("User chose to change Database URI");
+                    let new_uri = self.get_input("Enter new Database URI: ")?;
+                    new_db = Some(new_uri);
+                    println!("Database URI updated.");
+                    info!("User changed Database URI from '{}' to '{}'", self.config.database_uri, new_db.as_ref().unwrap());
+                }
+                "p" | "phrases" => {
+                    debug!("User chose to change number of phrases per round");
+                    let new_limit = self.get_input("Enter new number of phrases per round: ")?;
+                    new_phrases_per_round = Some(new_limit.parse::<usize>()?);
+                    println!("Number of phrases per round updated.");
+                    info!("User changed number of phrases per round from '{}' to '{}'", self.config.phrases_per_round, new_limit);
+                }
+                "s" | "save" => {
+                    debug!("User chose to save settings");
+                    match &new_db {
+                        Some(db) => self.config.database_uri = db.clone(),
+                        None => (),
+                    }
+                    match &new_phrases_per_round {
+                        Some(p) => self.config.phrases_per_round = *p,
+                        None => (),
+                    }
+                    println!("Settings saved.\n");
+                    info!("Settings saved.");
+                    break Ok(());
+                }
+                "q" | "quit" => {
+                    debug!("User chose to quit the settings menu");
+                    println!("\nExiting settings menu.\n");
+                    break Ok(());
+                }
+                _ => {
+                    debug!("Unrecognized input in settings menu");
+                    println!("\nUnrecognized option.\n");
+                }
+            }
+        }
     }
 }
