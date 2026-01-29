@@ -38,7 +38,7 @@ impl App {
                         break Ok(());
                     }
                 }
-                // TODO add options to change settings, view & edit database, etc.
+                // TODO add options to view & edit database, etc.
                 "q" | "quit" | "__!quit!__" => {
                     debug!("User chose to quit the application with {}", choice);
                     println!("\nGoodbye!");
@@ -113,10 +113,8 @@ impl App {
     /// Returns `Ok(true)` if the player chooses to quit after a round, `Ok(false)` if they choose to play again,
     /// or an `Err` if an error occurs during the game loop.
     fn run_game(&self) -> anyhow::Result<bool> {
-        // TODO read db path from config
         let db = Database::new(&self.config.database_uri)?;
         debug!("Database loaded");
-        // TODO read limit from config
 
         match self.game_loop(&db, self.config.phrases_per_round) {
             Ok(x) => Ok(x),
@@ -131,7 +129,7 @@ impl App {
 
     fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
         info!("Game loop started.");
-        // TODO add exit option (shortcut, configurable)
+        // TODO add exit configurable option
         loop {
             self.start_round(db.get_random(Some(phrases_per_round)))?;
 
