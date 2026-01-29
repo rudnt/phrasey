@@ -18,10 +18,13 @@ impl App {
         App { config }
     }
 
+    // TODO: bug - when we quit using shortcut during game play we are asked if we want to play again
     pub fn run(&mut self) -> anyhow::Result<()> {
+        self.render_main_menu();
+
+        let mut input_box_text = "Choose and press Enter";
         loop {
-            self.render_main_menu();
-            let choice = self.get_input("Your choice: ")?;
+            let choice = self.get_input(input_box_text)?;
 
             match choice.as_str() {
                 "" => {
@@ -41,20 +44,21 @@ impl App {
                 // TODO add options to view & edit database, etc.
                 "q" | "quit" | "__!quit!__" => {
                     debug!("User chose to quit the application with {}", choice);
-                    println!("\nGoodbye!");
+                    println!("\nGoodbye!\n");
                     break Ok(());
                 }
                 _ => {
                     debug!("Unrecognized input in main menu: {}", choice);
-                    println!("\nWhat did you mean by '{}'? Please try again.", choice);
-                    break self.run();
+                    print!("\x1b[3A");
+                    input_box_text = "Unrecognized option. Choose an option and press Enter";
                 }
             }
         }
     }
 
     fn render_main_menu(&self) {
-        // TODO make UI nice-looking all over the place, use colors, etc.
+        // TODO let's find size of the terminal, clear it and render UI nicely at the top
+        // TODO Let's add some colors to the menu (something CyberPunk-themed)
         println!("");
         println!("  ██████╗ ██╗  ██╗██████╗  █████╗ ███████╗███████╗██╗   ██╗");
         println!("  ██╔══██╗██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝");
@@ -70,7 +74,16 @@ impl App {
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<String> {
-        print!("{}", msg);
+        let box_width = 70;
+        let top_border = format!("┌{}┐", "─".repeat(box_width));
+        let text_line = format!("│ \x1b[90m{}\x1b[0m {}│", msg, " ".repeat(box_width - msg.len() - 2));
+        let bottom_border = format!("└{}┘", "─".repeat(box_width));
+        
+        // TODO render text grayed, when input provided - remove it at once, bring it back if input cleared
+        println!("{}", top_border);
+        println!("{}", text_line);
+        println!("{}", bottom_border);
+        print!("\x1b[2A\x1b[{}C", msg.len() + 2);
         std::io::stdout().flush()?;
 
         enable_raw_mode()?;
@@ -83,24 +96,43 @@ impl App {
                         && code == KeyCode::Char('d') {
                         debug!("User triggered quit shortcut during input");
                         disable_raw_mode()?;
+                        println!("\n{}", bottom_border);
                         return Ok("__!quit!__".to_string());
                     } 
                     
+                    // TODO support multi-line input and its removal clearly
+                    // box expands when new line needed, shrinks when lines removed
+                    // text never goes beyond box borders (box resizes or text scrolls)
                     match code {
                         KeyCode::Enter => {
                             debug!("User finished input: {}", input);
                             disable_raw_mode()?;
+                            println!("\n{}", bottom_border);
                             return Ok(input.trim().to_lowercase());
                         }
                         KeyCode::Char(c) => {
+                            if input.is_empty() {
+                                print!("\x1b[{}D", msg.len());
+                                print!("{}|", " ".repeat(box_width - 1));
+                                print!("\x1b[{}D", box_width);
+                            }
                             input.push(c);
                             print!("{}", c);
                             std::io::stdout().flush()?;
                         }
                         KeyCode::Backspace => {
-                            input.pop();
-                            print!("\x08 \x08");
-                            std::io::stdout().flush()?;
+                            if input.len() == 1 {
+                                input.pop();
+                                print!("\x1b[{}D", input.len() + 3);
+                                print!("{}", text_line);
+                                print!("\x1b[{}D", box_width - msg.len());
+                                std::io::stdout().flush()?;
+                            }
+                            else if !input.is_empty() {
+                                input.pop();
+                                print!("\x08 \x08");
+                                std::io::stdout().flush()?;
+                            }
                         }
                         _ => {}
                     }
@@ -192,6 +224,9 @@ impl App {
     }
 
     fn run_settings(&mut self) -> anyhow::Result<bool> {
+        // TODO let's find size of the terminal, clear it and render UI nicely at the top
+        // TODO Let's add some colors to the menu (something CyberPunk-themed)
+        // TODO adjust settings to fit nicely with other parts of the UI
         let mut new_db = None;
         let mut new_phrases_per_round = None;
         loop {
