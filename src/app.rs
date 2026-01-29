@@ -55,14 +55,17 @@ impl App {
 
     fn render_main_menu(&self) {
         // TODO make UI nice-looking all over the place, use colors, etc.
-        println!("\n\n====================================");
-        println!("        Welcome to Phrasey     ");
-        println!("  Your command-line phrase trainer  ");
-        println!("====================================\n\n");
-        println!("What do you want to do?\n");
-        println!("[Enter] Start a new game");
-        println!("[s]     Settings");
-        println!("[q]     Quit\n");
+        println!("");
+        println!("  ██████╗ ██╗  ██╗██████╗  █████╗ ███████╗███████╗██╗   ██╗");
+        println!("  ██╔══██╗██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝");
+        println!("  ██████╔╝███████║██████╔╝███████║███████╗█████╗   ╚████╔╝ ");
+        println!("  ██╔═══╝ ██╔══██║██╔══██╗██╔══██║╚════██║██╔══╝    ╚██╔╝  ");
+        println!("  ██║     ██║  ██║██║  ██║██║  ██║███████║███████╗   ██║   ");
+        println!("  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   \n");
+        println!("  What do you want to do?\n");
+        println!("   [Enter]  New game");
+        println!("   [s]      Settings");
+        println!("   [q]      Quit\n");
         debug!("Main menu rendered");
     }
 
