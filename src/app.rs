@@ -135,7 +135,9 @@ impl App {
                             std::io::stdout().flush()?;
                         }
                         KeyCode::Backspace => {
-                            if input.len() == 1 {
+                            if input.is_empty() {
+                                continue;
+                            } else if input.len() == 1 {
                                 input.pop();
                                 print!("\x1b[{}D", input.len() + 4);
                                 print!("{}", text_line);
@@ -150,7 +152,7 @@ impl App {
                                 print!("\x1b[A\x1b[2D");
                                 print!("\x08 \x08");
                                 std::io::stdout().flush()?;
-                            } else if !input.is_empty() {
+                            } else {
                                 input.pop();
                                 print!("\x08 \x08");
                                 std::io::stdout().flush()?;
