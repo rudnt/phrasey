@@ -68,8 +68,8 @@ impl App {
         println!("  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   \n");
         println!("  What do you want to do?\n");
         println!("   [Enter]  New game");
-        println!("   [s]      Settings");
-        println!("   [q]      Quit\n");
+        println!("   [S]      Settings");
+        println!("   [Q]      Quit\n");
         debug!("Main menu rendered");
     }
 
@@ -83,7 +83,7 @@ impl App {
         println!("{}", top_border);
         println!("{}", text_line);
         println!("{}", bottom_border);
-        print!("\x1b[2A\x1b[{}C", msg.len() + 2);
+        print!("\x1b[2A\x1b[2C");
         std::io::stdout().flush()?;
 
         enable_raw_mode()?;
@@ -112,7 +112,6 @@ impl App {
                         }
                         KeyCode::Char(c) => {
                             if input.is_empty() {
-                                print!("\x1b[{}D", msg.len());
                                 print!("{}|", " ".repeat(box_width - 1));
                                 print!("\x1b[{}D", box_width);
                             }
@@ -123,9 +122,9 @@ impl App {
                         KeyCode::Backspace => {
                             if input.len() == 1 {
                                 input.pop();
-                                print!("\x1b[{}D", input.len() + 3);
+                                print!("\x1b[{}D", input.len() + 4);
                                 print!("{}", text_line);
-                                print!("\x1b[{}D", box_width - msg.len());
+                                print!("\x1b[{}D", box_width);
                                 std::io::stdout().flush()?;
                             }
                             else if !input.is_empty() {
