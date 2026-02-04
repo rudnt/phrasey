@@ -60,7 +60,7 @@ impl App {
                         print!("\x1b[3A");
                         input_box_text = "Unrecognized option. Choose an option and press Enter";
                     }
-                }
+                },
             }
         }
     }
@@ -68,7 +68,7 @@ impl App {
     fn render_main_menu(&self) {
         // TODO let's find size of the terminal, clear it and render UI nicely at the top
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
-        println!("");
+        println!();
         println!("  ██████╗ ██╗  ██╗██████╗  █████╗ ███████╗███████╗██╗   ██╗");
         println!("  ██╔══██╗██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝");
         println!("  ██████╔╝███████║██████╔╝███████║███████╗█████╗   ╚████╔╝ ");
@@ -85,9 +85,13 @@ impl App {
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
         let box_width = self.config.input_box_width;
         let top_border = format!("┌{}┐", "─".repeat(box_width));
-        let text_line = format!("│ \x1b[90m{}\x1b[0m {}│", msg, " ".repeat(box_width - msg.len() - 2));
+        let text_line = format!(
+            "│ \x1b[90m{}\x1b[0m {}│",
+            msg,
+            " ".repeat(box_width - msg.len() - 2)
+        );
         let bottom_border = format!("└{}┘", "─".repeat(box_width));
-        
+
         println!("{}", top_border);
         println!("{}", text_line);
         println!("{}", bottom_border);
@@ -96,21 +100,20 @@ impl App {
 
         enable_raw_mode()?;
         let mut input = String::new();
-        
+
         loop {
-            if event::poll(Duration::from_millis(100))? {
-                if let Event::Key(KeyEvent { code, modifiers, ..}) = event::read()? {
-                    if (modifiers.contains(KeyModifiers::CONTROL)) 
-                        && code == KeyCode::Char('d') {
+            if event::poll(Duration::from_millis(100))?
+                && let Event::Key(KeyEvent {
+                    code, modifiers, ..
+                }) = event::read()?
+                {
+                    if (modifiers.contains(KeyModifiers::CONTROL)) && code == KeyCode::Char('d') {
                         debug!("User triggered quit shortcut during input");
                         disable_raw_mode()?;
                         println!("\n{}", bottom_border);
                         return Ok(UserInput::Command(Command::Quit));
-                    } 
-                    
-                    // TODO support multi-line input and its removal clearly
-                    // box expands when new line needed, shrinks when lines removed
-                    // text never goes beyond box borders (box resizes or text scrolls)
+                    }
+
                     match code {
                         KeyCode::Enter => {
                             debug!("User finished input: {}", input);
@@ -122,7 +125,7 @@ impl App {
                             if input.is_empty() {
                                 print!("{}|", " ".repeat(box_width - 1));
                                 print!("\x1b[{}D", box_width);
-                            } else if (input.len() % (box_width - 2)) == 0 {
+                            } else if input.len().is_multiple_of(box_width - 2) {
                                 print!("\n\x1b[{}D", box_width);
                                 println!("|{}|", " ".repeat(box_width));
                                 print!("\x1b[{}D", box_width + 2);
@@ -143,10 +146,10 @@ impl App {
                                 print!("{}", text_line);
                                 print!("\x1b[{}D", box_width);
                                 std::io::stdout().flush()?;
-                            } else if (input.len() % (box_width - 2)) == 0 {
+                            } else if input.len().is_multiple_of(box_width - 2) {
                                 input.pop();
                                 print!("\x1b[2D");
-                                print!("\n{}"," ".repeat(box_width + 4));
+                                print!("\n{}", " ".repeat(box_width + 4));
                                 print!("\x1b[{}D\x1b[1A", box_width + 4);
                                 print!("{}", bottom_border);
                                 print!("\x1b[A\x1b[2D");
@@ -161,7 +164,6 @@ impl App {
                         _ => {}
                     }
                 }
-            }
         }
     }
 
@@ -209,18 +211,18 @@ impl App {
                 UserInput::Phrase(choice) => match choice.as_str() {
                     "y" | "yes" => {
                         debug!("User chose to play another round with {}", choice);
-                        ()
+                        
                     }
                     "q" | "quit" => {
                         debug!("User chose to quit the game with {}", choice);
                         println!("\nGoodbye!\n");
-                        break Ok(true)
+                        break Ok(true);
                     }
                     _ => {
                         debug!("User chose to come back to main menu with {}", choice);
-                        break Ok(false)
+                        break Ok(false);
                     }
-                }
+                },
             }
         }
     }
@@ -237,18 +239,27 @@ impl App {
             println!("Sentence: {}", original);
             let answer = self.get_input("Your translation: ")?;
 
-            if let UserInput::Command(cmd) = &answer && matches!(cmd, Command::Quit) {
+            if let UserInput::Command(cmd) = &answer
+                && matches!(cmd, Command::Quit)
+            {
                 debug!("User triggered quit shortcut during round");
                 println!("\nGoodbye!\n");
                 return Ok(true);
-            }
-            else if let UserInput::Phrase(phrase) = &answer && phrase.as_str() == translation.trim().to_lowercase() {
+            } else if let UserInput::Phrase(phrase) = &answer
+                && phrase.as_str() == translation.trim().to_lowercase()
+            {
                 println!("\nCorrect!\n");
-                debug!("Correct answer: original = '{}', translation = '{}'", original, translation);
+                debug!(
+                    "Correct answer: original = '{}', translation = '{}'",
+                    original, translation
+                );
                 sentences.remove(current);
             } else {
                 println!("\nWrong! The correct translation is: {}\n", translation);
-                debug!("Wrong answer: original = '{}', translation = '{}'", original, translation);
+                debug!(
+                    "Wrong answer: original = '{}', translation = '{}'",
+                    original, translation
+                );
                 current += 1;
             }
 
@@ -271,7 +282,7 @@ impl App {
             println!("[p] Phrases per round: {}", self.config.phrases_per_round);
             println!("[s] Save\n");
             println!("[q] Quit\n");
-    
+
             let choice = self.get_input("Your choice: ")?;
             match choice {
                 UserInput::Command(cmd) => match cmd {
@@ -288,46 +299,53 @@ impl App {
                         match new_uri {
                             UserInput::Command(cmd) => match cmd {
                                 Command::Quit => {
-                                    debug!("User triggered quit shortcut during database URI input");
+                                    debug!(
+                                        "User triggered quit shortcut during database URI input"
+                                    );
                                     println!("\nGoodbye!\n");
                                     return Ok(true);
                                 }
-                            }
+                            },
                             UserInput::Phrase(uri) => {
                                 new_db = Some(uri);
                                 println!("Database URI updated.");
-                                info!("User changed Database URI from '{}' to '{}'", self.config.database_uri, new_db.as_ref().unwrap());
+                                info!(
+                                    "User changed Database URI from '{}' to '{}'",
+                                    self.config.database_uri,
+                                    new_db.as_ref().unwrap()
+                                );
                             }
                         }
                     }
                     "p" | "phrases" => {
                         debug!("User chose to change number of phrases per round");
-                        let new_limit = self.get_input("Enter new number of phrases per round: ")?;
+                        let new_limit =
+                            self.get_input("Enter new number of phrases per round: ")?;
                         match new_limit {
                             UserInput::Command(cmd) => match cmd {
                                 Command::Quit => {
-                                    debug!("User triggered quit shortcut during phrases per round input");
+                                    debug!(
+                                        "User triggered quit shortcut during phrases per round input"
+                                    );
                                     println!("\nGoodbye!\n");
                                     return Ok(true);
                                 }
-                            }
+                            },
                             UserInput::Phrase(limit) => {
                                 new_phrases_per_round = Some(limit.parse::<usize>()?);
                                 println!("Number of phrases per round updated.");
-                                info!("User changed number of phrases per round from '{}' to '{}'", self.config.phrases_per_round, new_phrases_per_round.as_ref().unwrap());
+                                info!(
+                                    "User changed number of phrases per round from '{}' to '{}'",
+                                    self.config.phrases_per_round,
+                                    new_phrases_per_round.as_ref().unwrap()
+                                );
                             }
                         }
                     }
                     "s" | "save" => {
                         debug!("User chose to save settings");
-                        match &new_db {
-                            Some(db) => self.config.database_uri = db.clone(),
-                            None => (),
-                        }
-                        match &new_phrases_per_round {
-                            Some(p) => self.config.phrases_per_round = *p,
-                            None => (),
-                        }
+                        if let Some(db) = &new_db { self.config.database_uri = db.clone() }
+                        if let Some(p) = &new_phrases_per_round { self.config.phrases_per_round = *p }
                         println!("Settings saved.\n");
                         info!("Settings saved.");
                         break Ok(false);
@@ -341,7 +359,7 @@ impl App {
                         debug!("Unrecognized input in settings menu");
                         println!("\nUnrecognized option.\n");
                     }
-                }
+                },
             }
         }
     }

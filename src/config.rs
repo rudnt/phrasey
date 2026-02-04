@@ -21,7 +21,9 @@ impl Config {
     fn build<P: AsRef<Path>>(path: P) -> anyhow::Result<Self> {
         let builder = config::Config::builder().add_source(config::File::from(path.as_ref()));
         let cfg = builder.build().context("Failed to build configuration")?;
-        let config: Config = cfg.try_deserialize().context("Failed to deserialize configuration")?;
+        let config: Config = cfg
+            .try_deserialize()
+            .context("Failed to deserialize configuration")?;
         debug!("Configuration built");
         Ok(config)
     }

@@ -10,7 +10,7 @@ use crate::config::Config;
 
 fn main() -> anyhow::Result<()> {
     env_logger::init();
-    
+
     let config = Config::load("config.toml")?;
     let mut app = App::new(config);
     match app.run() {
