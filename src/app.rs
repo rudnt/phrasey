@@ -83,12 +83,11 @@ impl App {
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
-        let box_width = 70;
+        let box_width = 58;
         let top_border = format!("┌{}┐", "─".repeat(box_width));
         let text_line = format!("│ \x1b[90m{}\x1b[0m {}│", msg, " ".repeat(box_width - msg.len() - 2));
         let bottom_border = format!("└{}┘", "─".repeat(box_width));
         
-        // TODO render text grayed, when input provided - remove it at once, bring it back if input cleared
         println!("{}", top_border);
         println!("{}", text_line);
         println!("{}", bottom_border);
@@ -123,6 +122,13 @@ impl App {
                             if input.is_empty() {
                                 print!("{}|", " ".repeat(box_width - 1));
                                 print!("\x1b[{}D", box_width);
+                            } else if (input.len() % (box_width - 2)) == 0 {
+                                print!("\n\x1b[{}D", box_width);
+                                println!("|{}|", " ".repeat(box_width));
+                                print!("\x1b[{}D", box_width + 2);
+                                println!("{}", bottom_border);
+                                print!("\x1b[2A\x1b[{}D", box_width);
+                                std::io::stdout().flush()?;
                             }
                             input.push(c);
                             print!("{}", c);
@@ -135,8 +141,16 @@ impl App {
                                 print!("{}", text_line);
                                 print!("\x1b[{}D", box_width);
                                 std::io::stdout().flush()?;
-                            }
-                            else if !input.is_empty() {
+                            } else if (input.len() % (box_width - 2)) == 0 {
+                                input.pop();
+                                print!("\x1b[2D");
+                                print!("\n{}"," ".repeat(box_width + 4));
+                                print!("\x1b[{}D\x1b[1A", box_width + 4);
+                                print!("{}", bottom_border);
+                                print!("\x1b[A\x1b[2D");
+                                print!("\x08 \x08");
+                                std::io::stdout().flush()?;
+                            } else if !input.is_empty() {
                                 input.pop();
                                 print!("\x08 \x08");
                                 std::io::stdout().flush()?;
