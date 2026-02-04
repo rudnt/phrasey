@@ -1,5 +1,6 @@
 mod app;
 mod config;
+mod types;
 mod utils;
 
 use log::error;

@@ -7,6 +7,7 @@ use std::io::Write;
 use std::time::Duration;
 
 use crate::config::Config;
+use crate::types::{Command, UserInput};
 use crate::utils::database::{Database, Records};
 
 pub struct App {
@@ -18,7 +19,6 @@ impl App {
         App { config }
     }
 
-    // TODO: bug - when we quit using shortcut during game play we are asked if we want to play again
     pub fn run(&mut self) -> anyhow::Result<()> {
         self.render_main_menu();
 
@@ -26,31 +26,40 @@ impl App {
         loop {
             let choice = self.get_input(input_box_text)?;
 
-            match choice.as_str() {
-                "" => {
-                    debug!("User chose to start a new game");
-                    if self.run_game()? {
-                        debug!("User chose to quit after game");
+            match choice {
+                UserInput::Command(cmd) => match cmd {
+                    Command::Quit => {
+                        debug!("User triggered quit shortcut in main menu");
+                        println!("\nGoodbye!\n");
                         break Ok(());
                     }
-                }
-                "s" | "settings" => {
-                    debug!("User chose settings with {}", choice);
-                    if self.run_settings()? {
-                        debug!("User chose to quit after game");
+                },
+                UserInput::Phrase(phrase) => match phrase.as_str() {
+                    "" => {
+                        debug!("User chose to start a new game");
+                        if self.run_game()? {
+                            debug!("User chose to quit after game");
+                            break Ok(());
+                        }
+                    }
+                    "s" | "settings" => {
+                        debug!("User chose settings with {}", phrase);
+                        if self.run_settings()? {
+                            debug!("User chose to quit after settings");
+                            break Ok(());
+                        }
+                    }
+                    // TODO add options to view & edit database, etc.
+                    "q" | "quit" => {
+                        debug!("User chose to quit the application with {}", phrase);
+                        println!("\nGoodbye!\n");
                         break Ok(());
                     }
-                }
-                // TODO add options to view & edit database, etc.
-                "q" | "quit" | "__!quit!__" => {
-                    debug!("User chose to quit the application with {}", choice);
-                    println!("\nGoodbye!\n");
-                    break Ok(());
-                }
-                _ => {
-                    debug!("Unrecognized input in main menu: {}", choice);
-                    print!("\x1b[3A");
-                    input_box_text = "Unrecognized option. Choose an option and press Enter";
+                    _ => {
+                        debug!("Unrecognized input in main menu: {}", phrase);
+                        print!("\x1b[3A");
+                        input_box_text = "Unrecognized option. Choose an option and press Enter";
+                    }
                 }
             }
         }
@@ -73,7 +82,7 @@ impl App {
         debug!("Main menu rendered");
     }
 
-    fn get_input(&self, msg: &str) -> anyhow::Result<String> {
+    fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
         let box_width = 70;
         let top_border = format!("┌{}┐", "─".repeat(box_width));
         let text_line = format!("│ \x1b[90m{}\x1b[0m {}│", msg, " ".repeat(box_width - msg.len() - 2));
@@ -97,7 +106,7 @@ impl App {
                         debug!("User triggered quit shortcut during input");
                         disable_raw_mode()?;
                         println!("\n{}", bottom_border);
-                        return Ok("__!quit!__".to_string());
+                        return Ok(UserInput::Command(Command::Quit));
                     } 
                     
                     // TODO support multi-line input and its removal clearly
@@ -108,7 +117,7 @@ impl App {
                             debug!("User finished input: {}", input);
                             disable_raw_mode()?;
                             println!("\n{}", bottom_border);
-                            return Ok(input.trim().to_lowercase());
+                            return Ok(UserInput::Phrase(input.trim().to_lowercase()));
                         }
                         KeyCode::Char(c) => {
                             if input.is_empty() {
@@ -165,30 +174,42 @@ impl App {
         info!("Game loop started.");
         // TODO add exit configurable option
         loop {
-            self.start_round(db.get_random(Some(phrases_per_round)))?;
+            if self.start_round(db.get_random(Some(phrases_per_round)))? {
+                debug!("User chose to quit during round");
+                break Ok(true);
+            }
 
             let msg = "Round completed! Do you want to play again? (yes/no/quit): ";
             let choice = self.get_input(msg)?;
 
-            match choice.as_str() {
-                "y" | "yes" => {
-                    debug!("User chose to play another round with {}", choice);
-                    ()
-                }
-                "q" | "quit" | "__!quit!__" => {
-                    debug!("User chose to quit the game with {}", choice);
-                    println!("\nGoodbye!\n");
-                    break Ok(true)
-                }
-                _ => {
-                    debug!("User chose to come back to main menu with {}", choice);
-                    break Ok(false)
+            match choice {
+                UserInput::Command(cmd) => match cmd {
+                    Command::Quit => {
+                        debug!("User triggered quit shortcut after round");
+                        println!("\nGoodbye!\n");
+                        break Ok(true);
+                    }
+                },
+                UserInput::Phrase(choice) => match choice.as_str() {
+                    "y" | "yes" => {
+                        debug!("User chose to play another round with {}", choice);
+                        ()
+                    }
+                    "q" | "quit" => {
+                        debug!("User chose to quit the game with {}", choice);
+                        println!("\nGoodbye!\n");
+                        break Ok(true)
+                    }
+                    _ => {
+                        debug!("User chose to come back to main menu with {}", choice);
+                        break Ok(false)
+                    }
                 }
             }
         }
     }
 
-    fn start_round(&self, mut sentences: Records) -> anyhow::Result<()> {
+    fn start_round(&self, mut sentences: Records) -> anyhow::Result<bool> {
         println!("\nNew round! Translate the following sentences:\n");
         debug!("Starting a new round with {} sentence(s)", sentences.len());
 
@@ -200,12 +221,12 @@ impl App {
             println!("Sentence: {}", original);
             let answer = self.get_input("Your translation: ")?;
 
-            if answer == "__!quit!__" {
+            if let UserInput::Command(cmd) = &answer && matches!(cmd, Command::Quit) {
                 debug!("User triggered quit shortcut during round");
                 println!("\nGoodbye!\n");
-                break;
+                return Ok(true);
             }
-            else if answer == translation.trim().to_lowercase() {
+            else if let UserInput::Phrase(phrase) = &answer && phrase.as_str() == translation.trim().to_lowercase() {
                 println!("\nCorrect!\n");
                 debug!("Correct answer: original = '{}', translation = '{}'", original, translation);
                 sentences.remove(current);
@@ -219,7 +240,7 @@ impl App {
         }
 
         debug!("Round completed");
-        Ok(())
+        Ok(false)
     }
 
     fn run_settings(&mut self) -> anyhow::Result<bool> {
@@ -236,48 +257,74 @@ impl App {
             println!("[q] Quit\n");
     
             let choice = self.get_input("Your choice: ")?;
-            match choice.as_str() {
-                "d" | "database" => {
-                    debug!("User chose to change Database URI");
-                    let new_uri = self.get_input("Enter new Database URI: ")?;
-                    new_db = Some(new_uri);
-                    println!("Database URI updated.");
-                    info!("User changed Database URI from '{}' to '{}'", self.config.database_uri, new_db.as_ref().unwrap());
-                }
-                "p" | "phrases" => {
-                    debug!("User chose to change number of phrases per round");
-                    let new_limit = self.get_input("Enter new number of phrases per round: ")?;
-                    new_phrases_per_round = Some(new_limit.parse::<usize>()?);
-                    println!("Number of phrases per round updated.");
-                    info!("User changed number of phrases per round from '{}' to '{}'", self.config.phrases_per_round, new_limit);
-                }
-                "s" | "save" => {
-                    debug!("User chose to save settings");
-                    match &new_db {
-                        Some(db) => self.config.database_uri = db.clone(),
-                        None => (),
+            match choice {
+                UserInput::Command(cmd) => match cmd {
+                    Command::Quit => {
+                        debug!("User triggered quit shortcut during settings menu");
+                        println!("\nGoodbye!\n");
+                        break Ok(true);
                     }
-                    match &new_phrases_per_round {
-                        Some(p) => self.config.phrases_per_round = *p,
-                        None => (),
+                },
+                UserInput::Phrase(option) => match option.as_str() {
+                    "d" | "database" => {
+                        debug!("User chose to change Database URI");
+                        let new_uri = self.get_input("Enter new Database URI: ")?;
+                        match new_uri {
+                            UserInput::Command(cmd) => match cmd {
+                                Command::Quit => {
+                                    debug!("User triggered quit shortcut during database URI input");
+                                    println!("\nGoodbye!\n");
+                                    return Ok(true);
+                                }
+                            }
+                            UserInput::Phrase(uri) => {
+                                new_db = Some(uri);
+                                println!("Database URI updated.");
+                                info!("User changed Database URI from '{}' to '{}'", self.config.database_uri, new_db.as_ref().unwrap());
+                            }
+                        }
                     }
-                    println!("Settings saved.\n");
-                    info!("Settings saved.");
-                    break Ok(false);
-                }
-                "q" | "quit" => {
-                    debug!("User chose to quit the settings menu");
-                    println!("\nExiting settings menu.\n");
-                    break Ok(false);
-                }
-                "__!quit!__" => {
-                    debug!("User triggered quit shortcut during settings menu");
-                    println!("\nGoodbye!\n");
-                    break Ok(true);
-                }
-                _ => {
-                    debug!("Unrecognized input in settings menu");
-                    println!("\nUnrecognized option.\n");
+                    "p" | "phrases" => {
+                        debug!("User chose to change number of phrases per round");
+                        let new_limit = self.get_input("Enter new number of phrases per round: ")?;
+                        match new_limit {
+                            UserInput::Command(cmd) => match cmd {
+                                Command::Quit => {
+                                    debug!("User triggered quit shortcut during phrases per round input");
+                                    println!("\nGoodbye!\n");
+                                    return Ok(true);
+                                }
+                            }
+                            UserInput::Phrase(limit) => {
+                                new_phrases_per_round = Some(limit.parse::<usize>()?);
+                                println!("Number of phrases per round updated.");
+                                info!("User changed number of phrases per round from '{}' to '{}'", self.config.phrases_per_round, new_phrases_per_round.as_ref().unwrap());
+                            }
+                        }
+                    }
+                    "s" | "save" => {
+                        debug!("User chose to save settings");
+                        match &new_db {
+                            Some(db) => self.config.database_uri = db.clone(),
+                            None => (),
+                        }
+                        match &new_phrases_per_round {
+                            Some(p) => self.config.phrases_per_round = *p,
+                            None => (),
+                        }
+                        println!("Settings saved.\n");
+                        info!("Settings saved.");
+                        break Ok(false);
+                    }
+                    "q" | "quit" => {
+                        debug!("User chose to quit the settings menu");
+                        println!("\nExiting settings menu.\n");
+                        break Ok(false);
+                    }
+                    _ => {
+                        debug!("Unrecognized input in settings menu");
+                        println!("\nUnrecognized option.\n");
+                    }
                 }
             }
         }
