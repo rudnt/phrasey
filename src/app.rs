@@ -19,11 +19,20 @@ impl App {
         App { config }
     }
 
+    // TODO better handle cases where msg size is bigger than input box width
+    // TODO render Phrasey logo in the top of the screen and change text beneath it to match the current menu (main menu, settings, game, etc.)
+    // don't scroll the screen, just update the text in place
     pub fn run(&mut self) -> anyhow::Result<()> {
-        self.render_main_menu();
+        self.render_logo();
 
         let mut input_box_text = "Choose and press Enter";
         loop {
+            println!();
+            println!("  What do you want to do?\n");
+            println!("   [Enter]  New game");
+            println!("   [S]      Settings");
+            println!("   [Q]      Quit\n");
+
             let choice = self.get_input(input_box_text)?;
 
             match choice {
@@ -65,7 +74,7 @@ impl App {
         }
     }
 
-    fn render_main_menu(&self) {
+    fn render_logo(&self) {
         // TODO let's find size of the terminal, clear it and render UI nicely at the top
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
         println!();
@@ -74,12 +83,8 @@ impl App {
         println!("  ██████╔╝███████║██████╔╝███████║███████╗█████╗   ╚████╔╝ ");
         println!("  ██╔═══╝ ██╔══██║██╔══██╗██╔══██║╚════██║██╔══╝    ╚██╔╝  ");
         println!("  ██║     ██║  ██║██║  ██║██║  ██║███████║███████╗   ██║   ");
-        println!("  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   \n");
-        println!("  What do you want to do?\n");
-        println!("   [Enter]  New game");
-        println!("   [S]      Settings");
-        println!("   [Q]      Quit\n");
-        debug!("Main menu rendered");
+        println!("  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ");
+        debug!("Logo rendered");
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
@@ -106,64 +111,64 @@ impl App {
                 && let Event::Key(KeyEvent {
                     code, modifiers, ..
                 }) = event::read()?
-                {
-                    if (modifiers.contains(KeyModifiers::CONTROL)) && code == KeyCode::Char('d') {
-                        debug!("User triggered quit shortcut during input");
+            {
+                if (modifiers.contains(KeyModifiers::CONTROL)) && code == KeyCode::Char('d') {
+                    debug!("User triggered quit shortcut during input");
+                    disable_raw_mode()?;
+                    println!("\n{}", bottom_border);
+                    return Ok(UserInput::Command(Command::Quit));
+                }
+
+                match code {
+                    KeyCode::Enter => {
+                        debug!("User finished input: {}", input);
                         disable_raw_mode()?;
                         println!("\n{}", bottom_border);
-                        return Ok(UserInput::Command(Command::Quit));
+                        return Ok(UserInput::Phrase(input.trim().to_lowercase()));
                     }
-
-                    match code {
-                        KeyCode::Enter => {
-                            debug!("User finished input: {}", input);
-                            disable_raw_mode()?;
-                            println!("\n{}", bottom_border);
-                            return Ok(UserInput::Phrase(input.trim().to_lowercase()));
-                        }
-                        KeyCode::Char(c) => {
-                            if input.is_empty() {
-                                print!("{}|", " ".repeat(box_width - 1));
-                                print!("\x1b[{}D", box_width);
-                            } else if input.len().is_multiple_of(box_width - 2) {
-                                print!("\n\x1b[{}D", box_width);
-                                println!("|{}|", " ".repeat(box_width));
-                                print!("\x1b[{}D", box_width + 2);
-                                println!("{}", bottom_border);
-                                print!("\x1b[2A\x1b[{}D", box_width);
-                                std::io::stdout().flush()?;
-                            }
-                            input.push(c);
-                            print!("{}", c);
+                    KeyCode::Char(c) => {
+                        if input.is_empty() {
+                            print!("{}|", " ".repeat(box_width - 1));
+                            print!("\x1b[{}D", box_width);
+                        } else if input.len().is_multiple_of(box_width - 2) {
+                            print!("\n\x1b[{}D", box_width);
+                            println!("|{}|", " ".repeat(box_width));
+                            print!("\x1b[{}D", box_width + 2);
+                            println!("{}", bottom_border);
+                            print!("\x1b[2A\x1b[{}D", box_width);
                             std::io::stdout().flush()?;
                         }
-                        KeyCode::Backspace => {
-                            if input.is_empty() {
-                                continue;
-                            } else if input.len() == 1 {
-                                input.pop();
-                                print!("\x1b[{}D", input.len() + 4);
-                                print!("{}", text_line);
-                                print!("\x1b[{}D", box_width);
-                                std::io::stdout().flush()?;
-                            } else if input.len().is_multiple_of(box_width - 2) {
-                                input.pop();
-                                print!("\x1b[2D");
-                                print!("\n{}", " ".repeat(box_width + 4));
-                                print!("\x1b[{}D\x1b[1A", box_width + 4);
-                                print!("{}", bottom_border);
-                                print!("\x1b[A\x1b[2D");
-                                print!("\x08 \x08");
-                                std::io::stdout().flush()?;
-                            } else {
-                                input.pop();
-                                print!("\x08 \x08");
-                                std::io::stdout().flush()?;
-                            }
-                        }
-                        _ => {}
+                        input.push(c);
+                        print!("{}", c);
+                        std::io::stdout().flush()?;
                     }
+                    KeyCode::Backspace => {
+                        if input.is_empty() {
+                            continue;
+                        } else if input.len() == 1 {
+                            input.pop();
+                            print!("\x1b[{}D", input.len() + 4);
+                            print!("{}", text_line);
+                            print!("\x1b[{}D", box_width);
+                            std::io::stdout().flush()?;
+                        } else if input.len().is_multiple_of(box_width - 2) {
+                            input.pop();
+                            print!("\x1b[2D");
+                            print!("\n{}", " ".repeat(box_width + 4));
+                            print!("\x1b[{}D\x1b[1A", box_width + 4);
+                            print!("{}", bottom_border);
+                            print!("\x1b[A\x1b[2D");
+                            print!("\x08 \x08");
+                            std::io::stdout().flush()?;
+                        } else {
+                            input.pop();
+                            print!("\x08 \x08");
+                            std::io::stdout().flush()?;
+                        }
+                    }
+                    _ => {}
                 }
+            }
         }
     }
 
@@ -190,14 +195,13 @@ impl App {
 
     fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
         info!("Game loop started.");
-        // TODO add exit configurable option
         loop {
             if self.start_round(db.get_random(Some(phrases_per_round)))? {
                 debug!("User chose to quit during round");
                 break Ok(true);
             }
 
-            let msg = "Round completed! Do you want to play again? (yes/no/quit): ";
+            let msg = "Do you want to play again? (yes/no/quit): ";
             let choice = self.get_input(msg)?;
 
             match choice {
@@ -211,7 +215,6 @@ impl App {
                 UserInput::Phrase(choice) => match choice.as_str() {
                     "y" | "yes" => {
                         debug!("User chose to play another round with {}", choice);
-                        
                     }
                     "q" | "quit" => {
                         debug!("User chose to quit the game with {}", choice);
@@ -236,7 +239,7 @@ impl App {
             // Clear the screen below New round line
             let (original, translation) = &sentences[current];
 
-            println!("Sentence: {}", original);
+            println!("Sentence: {}\n", original);
             let answer = self.get_input("Your translation: ")?;
 
             if let UserInput::Command(cmd) = &answer
@@ -344,8 +347,12 @@ impl App {
                     }
                     "s" | "save" => {
                         debug!("User chose to save settings");
-                        if let Some(db) = &new_db { self.config.database_uri = db.clone() }
-                        if let Some(p) = &new_phrases_per_round { self.config.phrases_per_round = *p }
+                        if let Some(db) = &new_db {
+                            self.config.database_uri = db.clone()
+                        }
+                        if let Some(p) = &new_phrases_per_round {
+                            self.config.phrases_per_round = *p
+                        }
                         println!("Settings saved.\n");
                         info!("Settings saved.");
                         break Ok(false);

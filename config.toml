@@ -1,4 +1,4 @@
 database_uri = "db.csv"
 phrases_per_round = 1
 
-input_box_width = 30
+input_box_width = 56
