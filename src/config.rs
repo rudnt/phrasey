@@ -7,6 +7,8 @@ use std::path::Path;
 pub struct Config {
     pub database_uri: String,
     pub phrases_per_round: usize,
+
+    pub input_box_width: usize,
 }
 
 impl Config {
@@ -31,6 +33,10 @@ impl Config {
 
         if self.phrases_per_round == 0 {
             anyhow::bail!("Phrases per round must be greater than zero.");
+        }
+
+        if self.input_box_width < 30 {
+            anyhow::bail!("Input box width must be greater than or equal to 30.");
         }
 
         debug!("Configuration validated");

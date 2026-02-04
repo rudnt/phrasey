@@ -83,7 +83,7 @@ impl App {
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
-        let box_width = 58;
+        let box_width = self.config.input_box_width;
         let top_border = format!("┌{}┐", "─".repeat(box_width));
         let text_line = format!("│ \x1b[90m{}\x1b[0m {}│", msg, " ".repeat(box_width - msg.len() - 2));
         let bottom_border = format!("└{}┘", "─".repeat(box_width));
