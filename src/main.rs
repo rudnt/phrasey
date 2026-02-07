@@ -7,9 +7,10 @@ use log::error;
 
 use crate::app::App;
 use crate::config::Config;
+use crate::utils::logging;
 
 fn main() -> anyhow::Result<()> {
-    env_logger::init();
+    logging::init();
 
     let config = Config::load("config.toml")?;
     let mut app = App::new(config);
