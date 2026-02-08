@@ -2,6 +2,9 @@ use clap::Parser;
 use log::trace;
 use std::path::PathBuf;
 
+pub fn parse() -> anyhow::Result<Args> {
+    Args::new()
+}
 #[derive(Parser, Debug)]
 #[command(version, about)]
 pub struct Args{
