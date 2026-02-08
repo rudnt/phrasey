@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use rand::seq::SliceRandom;
 use std::fs::File;
 
@@ -14,7 +14,7 @@ impl Database {
     pub fn new(filepath: &str) -> anyhow::Result<Self> {
         // TODO use SQLite, divide per language, include metadata, etc.
         let records = Database::from_csv(filepath)?;
-        debug!("Loaded {} records from {}", records.len(), filepath);
+        debug!("Database loaded from {} with {} records", filepath, records.len());
         Ok(Database { records })
     }
 
@@ -23,13 +23,13 @@ impl Database {
         // TODO check randomness of this solution
         let mut random_generator = rand::rng();
         records.shuffle(&mut random_generator);
-        debug!("Shuffled records for randomness");
+        trace!("Shuffled records for randomness");
 
         let result = match limit {
             Some(n) => records.iter().take(n).cloned().collect(),
             None => records,
         };
-        debug!("Fetched {} random records from database", result.len());
+        trace!("Fetched {} random records from database", result.len());
         result
     }
 
@@ -38,7 +38,7 @@ impl Database {
         let mut records = Vec::new();
         let file = File::open(path)?;
         let mut reader = csv::ReaderBuilder::new().flexible(true).from_reader(file);
-        debug!("CSV reader initialized for file: {}", path);
+        trace!("CSV reader initialized for file: {}", path);
 
         for result in reader.records() {
             let record = result?;
@@ -46,13 +46,13 @@ impl Database {
                 let key = record[0].to_string();
                 let value = record[1].to_string();
                 records.push((key, value));
-                debug!("Row added: {:?}", record);
+                trace!("Row added: {:?}", record);
             } else {
-                debug!("Row skipped: {:?}", record);
+                trace!("Row skipped: {:?}", record);
             }
         }
 
-        debug!("Total records loaded from CSV: {}", records.len());
+        trace!("Total records loaded from CSV: {}", records.len());
         Ok(records)
     }
 }
