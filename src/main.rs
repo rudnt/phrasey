@@ -12,7 +12,7 @@ use crate::utils::{args, logging};
 fn main() -> anyhow::Result<()> {
     let args = args::parse()?;
     let config = Config::load(&args.config_path)?;
-    
+
     logging::init();
 
     let mut app = App::new(config);
