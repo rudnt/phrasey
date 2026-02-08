@@ -1,7 +1,7 @@
 mod app;
+mod engine;
 mod types;
 mod utils;
-
 use log::error;
 
 use crate::app::App;
@@ -12,7 +12,7 @@ fn main() -> anyhow::Result<()> {
     let config = config::load(&args.config_path)?;
     logging::init(&config.log_level, &config.log_dir_uri)?;
 
-    let mut app = App::new(config);
+    let mut app = App::new(&config)?;
     match app.run() {
         Ok(_) => Ok(()),
         Err(e) => {

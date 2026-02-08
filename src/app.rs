@@ -1,3 +1,4 @@
+use anyhow::Context;
 use crossterm::{
     event::{self, Event, KeyCode, KeyEvent, KeyModifiers},
     terminal::{disable_raw_mode, enable_raw_mode},
@@ -7,16 +8,18 @@ use std::io::Write;
 use std::time::Duration;
 
 use crate::config::Config;
+use crate::engine::Engine;
 use crate::types::{Command, UserInput};
-use crate::utils::database::{Database, Records};
 
-pub struct App {
-    config: Config,
+pub struct App<'a> {
+    config: &'a Config,
+    engine: Engine<'a>,
 }
 
-impl App {
-    pub fn new(config: Config) -> Self {
-        App { config }
+impl<'a> App<'a> {
+    pub fn new(config: &'a Config) -> anyhow::Result<Self> {
+        let engine = Engine::new(config).context("Failed to initialize engine")?;
+        Ok(App { config, engine })
     }
 
     // TODO better handle cases where msg size is bigger than input box width
@@ -178,11 +181,10 @@ impl App {
     ///
     /// Returns `Ok(true)` if the player chooses to quit after a round, `Ok(false)` if they choose to play again,
     /// or an `Err` if an error occurs during the game loop.
-    fn run_game(&self) -> anyhow::Result<bool> {
-        let db = Database::new(&self.config.db_conn_string)?;
-        debug!("Database loaded");
+    fn run_game(&mut self) -> anyhow::Result<bool> {
+        self.engine.start_round();
 
-        match self.game_loop(&db, self.config.phrases_per_round) {
+        match self.game_loop() {
             Ok(x) => Ok(x),
             Err(e) => {
                 eprintln!("Error during game loop: {}", e);
@@ -193,10 +195,10 @@ impl App {
         // TODO think about a better way to handle quiting
     }
 
-    fn game_loop(&self, db: &Database, phrases_per_round: usize) -> anyhow::Result<bool> {
+    fn game_loop(&mut self) -> anyhow::Result<bool> {
         info!("Game loop started.");
         loop {
-            if self.start_round(db.get_random(Some(phrases_per_round)))? {
+            if self.start_round()? {
                 debug!("User chose to quit during round");
                 break Ok(true);
             }
@@ -230,14 +232,13 @@ impl App {
         }
     }
 
-    fn start_round(&self, mut sentences: Records) -> anyhow::Result<bool> {
+    fn start_round(&mut self) -> anyhow::Result<bool> {
         println!("\nNew round! Translate the following sentences:\n");
-        debug!("Starting a new round with {} sentence(s)", sentences.len());
+        debug!("Starting a new round");
 
-        let mut current: usize = 0;
-        while !sentences.is_empty() {
+        while let Some(phrase) = self.engine.get_next_phrase() {
             // Clear the screen below New round line
-            let (original, translation) = &sentences[current];
+            let (original, translation) = phrase.clone();
 
             println!("Sentence: {}\n", original);
             let answer = self.get_input("Your translation: ")?;
@@ -249,24 +250,20 @@ impl App {
                 println!("\nGoodbye!\n");
                 return Ok(true);
             } else if let UserInput::Phrase(phrase) = &answer
-                && phrase.as_str() == translation.trim().to_lowercase()
+                && self.engine.check_current_phrase_and_move_on(phrase)?
             {
                 println!("\nCorrect!\n");
                 debug!(
                     "Correct answer: original = '{}', translation = '{}'",
                     original, translation
                 );
-                sentences.remove(current);
             } else {
                 println!("\nWrong! The correct translation is: {}\n", translation);
                 debug!(
                     "Wrong answer: original = '{}', translation = '{}'",
                     original, translation
                 );
-                current += 1;
             }
-
-            current %= sentences.len().max(1);
         }
 
         debug!("Round completed");
@@ -277,8 +274,8 @@ impl App {
         // TODO let's find size of the terminal, clear it and render UI nicely at the top
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
         // TODO adjust settings to fit nicely with other parts of the UI
-        let mut new_db = None;
-        let mut new_phrases_per_round = None;
+        // let mut new_db = None;
+        // let mut new_phrases_per_round = None;
         loop {
             println!("\nSettings menu\n");
             println!("[d] Database URI: {}", self.config.db_conn_string);
@@ -309,15 +306,16 @@ impl App {
                                     return Ok(true);
                                 }
                             },
-                            UserInput::Phrase(uri) => {
-                                new_db = Some(uri);
-                                println!("Database URI updated.");
-                                info!(
-                                    "User changed Database URI from '{}' to '{}'",
-                                    self.config.db_conn_string,
-                                    new_db.as_ref().unwrap()
-                                );
-                            }
+                            _ => {} // TODO fix this to actually update the config and reflect changes in the engine
+                                    // UserInput::Phrase(uri) => {
+                                    // new_db = Some(uri);
+                                    // println!("Database URI updated.");
+                                    // info!(
+                                    //     "User changed Database URI from '{}' to '{}'",
+                                    //     self.config.db_conn_string,
+                                    //     new_db.as_ref().unwrap()
+                                    // );
+                                    // }
                         }
                     }
                     "p" | "phrases" => {
@@ -334,25 +332,27 @@ impl App {
                                     return Ok(true);
                                 }
                             },
-                            UserInput::Phrase(limit) => {
-                                new_phrases_per_round = Some(limit.parse::<usize>()?);
-                                println!("Number of phrases per round updated.");
-                                info!(
-                                    "User changed number of phrases per round from '{}' to '{}'",
-                                    self.config.phrases_per_round,
-                                    new_phrases_per_round.as_ref().unwrap()
-                                );
-                            }
+                            _ => {} // TODO fix this to actually update the config and reflect changes in the engine
+                                    // UserInput::Phrase(limit) => {
+                                    // new_phrases_per_round = Some(limit.parse::<usize>()?);
+                                    // println!("Number of phrases per round updated.");
+                                    // info!(
+                                    //     "User changed number of phrases per round from '{}' to '{}'",
+                                    //     self.config.phrases_per_round,
+                                    //     new_phrases_per_round.as_ref().unwrap()
+                                    // );
+                                    // }
                         }
                     }
                     "s" | "save" => {
                         debug!("User chose to save settings");
-                        if let Some(db) = &new_db {
-                            self.config.db_conn_string = db.clone()
-                        }
-                        if let Some(p) = &new_phrases_per_round {
-                            self.config.phrases_per_round = *p
-                        }
+                        // TODO save settings to config
+                        // if let Some(db) = &new_db {
+                        //     self.config.db_conn_string = db.clone()
+                        // }
+                        // if let Some(p) = &new_phrases_per_round {
+                        //     self.config.phrases_per_round = *p
+                        // }
                         println!("Settings saved.\n");
                         info!("Settings saved.");
                         break Ok(false);

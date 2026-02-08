@@ -5,10 +5,11 @@ use std::fs::File;
 
 pub type OriginalSentence = String;
 pub type Translation = String;
-pub type Records = Vec<(OriginalSentence, Translation)>;
+pub type Phrase = (OriginalSentence, Translation); // TODO change to struct
+pub type Phrases = Vec<Phrase>;
 
 pub struct Database {
-    records: Records,
+    records: Phrases,
 }
 
 impl Database {
@@ -30,23 +31,20 @@ impl Database {
         Ok(Database { records })
     }
 
-    pub fn get_random(&self, limit: Option<usize>) -> Records {
-        let mut records = self.records.clone();
+    pub fn get_phrases(&self, limit: usize) -> Phrases {
+        let mut all_phrases = self.records.clone();
         // TODO check randomness of this solution
         let mut random_generator = rand::rng();
-        records.shuffle(&mut random_generator);
+        all_phrases.shuffle(&mut random_generator);
         trace!("Shuffled records for randomness");
 
-        let result = match limit {
-            Some(n) => records.iter().take(n).cloned().collect(),
-            None => records,
-        };
-        trace!("Fetched {} random records from database", result.len());
-        result
+        let phrases: Phrases = all_phrases.iter().take(limit).cloned().collect();
+        trace!("Fetched {} random records from database", phrases.len());
+        phrases
     }
 
     // TODO use it as tool to read new data into DB
-    fn from_csv(path: &str) -> anyhow::Result<Records> {
+    fn from_csv(path: &str) -> anyhow::Result<Phrases> {
         let mut records = Vec::new();
         let file = File::open(path)?;
         let mut reader = csv::ReaderBuilder::new().flexible(true).from_reader(file);
