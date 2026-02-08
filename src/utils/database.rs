@@ -1,3 +1,4 @@
+use anyhow::Context;
 use log::{debug, trace};
 use rand::seq::SliceRandom;
 use std::fs::File;
@@ -11,10 +12,12 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new(filepath: &str) -> anyhow::Result<Self> {
+    pub fn new(conn_string: &str) -> anyhow::Result<Self> {
         // TODO use SQLite, divide per language, include metadata, etc.
+        let filepath = conn_string.strip_prefix("file://").context("Failed to parse database connection string")?;
+        trace!("Database connection string parsed, loading from file: {}", filepath);
         let records = Database::from_csv(filepath)?;
-        debug!("Database loaded from {} with {} records", filepath, records.len());
+        debug!("Database loaded from {} with {} records", conn_string, records.len());
         Ok(Database { records })
     }
 

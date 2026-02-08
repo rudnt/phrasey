@@ -1,5 +1,18 @@
+use serde::{Serialize, Deserialize};
+
 pub enum Command {
     Quit,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
 }
 
 pub enum UserInput {

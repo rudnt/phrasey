@@ -3,13 +3,17 @@ use log::{debug, trace};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
+use crate::types::LogLevel;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
-    pub database_uri: String,
+    pub db_conn_string: String,
 
-    pub phrases_per_round: usize,
+    pub log_level: LogLevel,
+    pub log_dir_uri: Option<String>,
 
     pub input_box_width: usize,
+    pub phrases_per_round: usize,
 }
 
 impl Config {
@@ -33,7 +37,11 @@ impl Config {
     }
 
     fn parse(&mut self) -> anyhow::Result<()> {
-        self.database_uri = Self::parse_uri(&self.database_uri)?;
+        self.sanitize_string(&self.db_conn_string)?;
+
+        if let Some(ref log_dir_uri) = self.log_dir_uri {
+            self.sanitize_string(log_dir_uri)?;
+        }
 
         if self.phrases_per_round == 0 {
             anyhow::bail!("Phrases per round must be greater than zero.");
@@ -47,15 +55,10 @@ impl Config {
         Ok(())
     }
 
-    fn parse_uri(uri: &str) -> anyhow::Result<String> {
-        let path = uri
-            .strip_prefix("file://")
-            .context("Failed to parse database URI")?;
-        if !Path::new(path).exists() {
-            anyhow::bail!("Database file does not exist: {}", path);
-        }
+    fn sanitize_string(&self, value: &str) -> anyhow::Result<()> {
+        // TODO implement sanitization logic
 
-        trace!("URI parsed: {path}");
-        Ok(path.to_string())
+        trace!("String sanitized: {}", value);
+        Ok(())
     }
 }

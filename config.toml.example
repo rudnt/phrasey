@@ -1,5 +1,7 @@
-database_uri = "db.csv"
+db_conn_string = "db.csv"
 
-phrases_per_round = 1
+log_level = "warning"
+log_dir_uri = "file://./"
 
 input_box_width = 56
+phrases_per_round = 1

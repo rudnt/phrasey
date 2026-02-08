@@ -179,7 +179,7 @@ impl App {
     /// Returns `Ok(true)` if the player chooses to quit after a round, `Ok(false)` if they choose to play again,
     /// or an `Err` if an error occurs during the game loop.
     fn run_game(&self) -> anyhow::Result<bool> {
-        let db = Database::new(&self.config.database_uri)?;
+        let db = Database::new(&self.config.db_conn_string)?;
         debug!("Database loaded");
 
         match self.game_loop(&db, self.config.phrases_per_round) {
@@ -281,7 +281,7 @@ impl App {
         let mut new_phrases_per_round = None;
         loop {
             println!("\nSettings menu\n");
-            println!("[d] Database URI: {}", self.config.database_uri);
+            println!("[d] Database URI: {}", self.config.db_conn_string);
             println!("[p] Phrases per round: {}", self.config.phrases_per_round);
             println!("[s] Save\n");
             println!("[q] Quit\n");
@@ -314,7 +314,7 @@ impl App {
                                 println!("Database URI updated.");
                                 info!(
                                     "User changed Database URI from '{}' to '{}'",
-                                    self.config.database_uri,
+                                    self.config.db_conn_string,
                                     new_db.as_ref().unwrap()
                                 );
                             }
@@ -348,7 +348,7 @@ impl App {
                     "s" | "save" => {
                         debug!("User chose to save settings");
                         if let Some(db) = &new_db {
-                            self.config.database_uri = db.clone()
+                            self.config.db_conn_string = db.clone()
                         }
                         if let Some(p) = &new_phrases_per_round {
                             self.config.phrases_per_round = *p
