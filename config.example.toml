@@ -1,6 +1,6 @@
 db_conn_string = "db.csv"
 
-log_level = "warning"
+log_level = "warn"
 log_dir_uri = "file://./"
 
 input_box_width = 56

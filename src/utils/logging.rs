@@ -10,14 +10,21 @@ pub fn init(log_level: &LogLevel, log_dir_uri: &Option<String>) -> anyhow::Resul
         dispatcher = set_output(dispatcher, log_dir_uri)?;
     }
 
-    dispatcher.apply().context("Failed to apply logging configuration")?;
+    dispatcher
+        .apply()
+        .context("Failed to apply logging configuration")?;
     debug!("Logging initialized with log_dir_uri: {:?}", log_dir_uri);
     Ok(())
 }
-    
-fn set_output(mut dispatcher: fern::Dispatch, log_dir_uri: &Option<String>) -> anyhow::Result<fern::Dispatch> {
+
+fn set_output(
+    mut dispatcher: fern::Dispatch,
+    log_dir_uri: &Option<String>,
+) -> anyhow::Result<fern::Dispatch> {
     if let Some(uri) = log_dir_uri {
-        let dirpath = uri.strip_prefix("file://").context("Failed to parse log_dir_uri")?;
+        let dirpath = uri
+            .strip_prefix("file://")
+            .context("Failed to parse log_dir_uri")?;
         let timestamp = chrono::Local::now().format("%Y-%m-%d_%H-%M-%S");
         let filename = format!("phrasey_{}.log", timestamp);
         let filepath = std::path::Path::new(dirpath).join(filename);
