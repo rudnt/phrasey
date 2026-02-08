@@ -5,7 +5,11 @@ use crate::types::LogLevel;
 
 pub fn init(log_level: &LogLevel, log_dir_uri: &Option<String>) -> anyhow::Result<()> {
     let mut dispatcher = create_dispatcher(log_level);
-    dispatcher = set_output(dispatcher, log_dir_uri)?;
+
+    if log_level != &LogLevel::Off {
+        dispatcher = set_output(dispatcher, log_dir_uri)?;
+    }
+
     dispatcher.apply().context("Failed to apply logging configuration")?;
     debug!("Logging initialized with log_dir_uri: {:?}", log_dir_uri);
     Ok(())
