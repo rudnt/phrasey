@@ -1,3 +1,4 @@
+use anyhow::Context;
 use log::{debug, trace};
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -32,6 +33,10 @@ impl Engine {
         Ok(engine)
     }
 
+    // TODO on round end we have to update DB and so on - think how to tie it together
+    // So game won't be in bad state (e.g. app crash) and we won't lose progress
+    // maybe we return iterable game object with db update on decostruction?
+    // Think about it in context of CLI AND API - we want to be able to use it in both contexts
     pub fn start_round(&mut self) {
         trace!("Starting new round, fetching phrases from database");
         let phrases = self.db.get_phrases(self.config.borrow().phrases_per_round);
@@ -42,7 +47,7 @@ impl Engine {
         debug!(
             "Round started with {} phrases",
             self.unrecognized_phrases.len()
-        )
+        );
     }
 
     pub fn get_next_phrase(&mut self) -> Option<&Phrase> {
@@ -64,29 +69,29 @@ impl Engine {
     }
 
     pub fn check_current_phrase_and_move_on(&mut self, answer: &String) -> anyhow::Result<bool> {
-        if let Some(index) = self.current_phrase_idx {
-            let phrase = &self.unrecognized_phrases[index].0.1;
-            // TODO implement validation logic, e.g. using Levenshtein distance
-            let result = answer.trim().to_lowercase() == phrase.trim().to_lowercase();
-            trace!(
-                "Checking answer: '{}', expected: '{}', result: {}",
-                answer, phrase, result
-            );
+        let index = self
+            .current_phrase_idx
+            .context("No current phrase index set")?;
+        let phrase = &self.unrecognized_phrases[index].0.1;
 
-            if result {
-                let (phrase, attempts) = self.unrecognized_phrases.remove(index);
-                self.recognized_phrases.push((phrase, attempts));
-            } else {
-                self.unrecognized_phrases[index].1 += 1;
-            }
-            self.current_phrase_idx = None;
-            Ok(result)
+        // TODO implement validation logic, e.g. using Levenshtein distance
+        let result = answer.trim().to_lowercase() == phrase.trim().to_lowercase();
+        trace!(
+            "Checking answer: '{}', expected: '{}', result: {}",
+            answer, phrase, result
+        );
+
+        if result {
+            let (phrase, attempts) = self.unrecognized_phrases.remove(index);
+            self.recognized_phrases.push((phrase, attempts));
         } else {
-            anyhow::bail!("No current phrase to validate against")
+            self.unrecognized_phrases[index].1 += 1;
         }
+        self.current_phrase_idx = None;
+        
+        Ok(result)
     }
 
-    // TODO do we need these?
     // pub fn end_round();
     // pub fn end_game();
 }
