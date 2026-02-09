@@ -4,21 +4,23 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode},
 };
 use log::{debug, error, info};
+use std::cell::RefCell;
 use std::io::Write;
+use std::rc::Rc;
 use std::time::Duration;
 
 use crate::config::Config;
 use crate::engine::Engine;
 use crate::types::{Command, UserInput};
 
-pub struct App<'a> {
-    config: &'a Config,
-    engine: Engine<'a>,
+pub struct App {
+    config: Rc<RefCell<Config>>,
+    engine: Engine,
 }
 
-impl<'a> App<'a> {
-    pub fn new(config: &'a Config) -> anyhow::Result<Self> {
-        let engine = Engine::new(config).context("Failed to initialize engine")?;
+impl App {
+    pub fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
+        let engine = Engine::new(config.clone()).context("Failed to initialize engine")?;
         Ok(App { config, engine })
     }
 
@@ -91,7 +93,7 @@ impl<'a> App<'a> {
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
-        let box_width = self.config.input_box_width;
+        let box_width = self.config.borrow().input_box_width;
         let top_border = format!("┌{}┐", "─".repeat(box_width));
         let text_line = format!(
             "│ \x1b[90m{}\x1b[0m {}│",
@@ -274,12 +276,14 @@ impl<'a> App<'a> {
         // TODO let's find size of the terminal, clear it and render UI nicely at the top
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
         // TODO adjust settings to fit nicely with other parts of the UI
-        // let mut new_db = None;
-        // let mut new_phrases_per_round = None;
+        let mut new_phrases_per_round = None;
         loop {
             println!("\nSettings menu\n");
-            println!("[d] Database URI: {}", self.config.db_conn_string);
-            println!("[p] Phrases per round: {}", self.config.phrases_per_round);
+            println!("[d] Database URI: {}", self.config.borrow().db_conn_string);
+            println!(
+                "[p] Phrases per round: {}",
+                self.config.borrow().phrases_per_round
+            );
             println!("[s] Save\n");
             println!("[q] Quit\n");
 
@@ -293,31 +297,6 @@ impl<'a> App<'a> {
                     }
                 },
                 UserInput::Phrase(option) => match option.as_str() {
-                    "d" | "database" => {
-                        debug!("User chose to change Database URI");
-                        let new_uri = self.get_input("Enter new Database URI: ")?;
-                        match new_uri {
-                            UserInput::Command(cmd) => match cmd {
-                                Command::Quit => {
-                                    debug!(
-                                        "User triggered quit shortcut during database URI input"
-                                    );
-                                    println!("\nGoodbye!\n");
-                                    return Ok(true);
-                                }
-                            },
-                            _ => {} // TODO fix this to actually update the config and reflect changes in the engine
-                                    // UserInput::Phrase(uri) => {
-                                    // new_db = Some(uri);
-                                    // println!("Database URI updated.");
-                                    // info!(
-                                    //     "User changed Database URI from '{}' to '{}'",
-                                    //     self.config.db_conn_string,
-                                    //     new_db.as_ref().unwrap()
-                                    // );
-                                    // }
-                        }
-                    }
                     "p" | "phrases" => {
                         debug!("User chose to change number of phrases per round");
                         let new_limit =
@@ -332,27 +311,23 @@ impl<'a> App<'a> {
                                     return Ok(true);
                                 }
                             },
-                            _ => {} // TODO fix this to actually update the config and reflect changes in the engine
-                                    // UserInput::Phrase(limit) => {
-                                    // new_phrases_per_round = Some(limit.parse::<usize>()?);
-                                    // println!("Number of phrases per round updated.");
-                                    // info!(
-                                    //     "User changed number of phrases per round from '{}' to '{}'",
-                                    //     self.config.phrases_per_round,
-                                    //     new_phrases_per_round.as_ref().unwrap()
-                                    // );
-                                    // }
+                            UserInput::Phrase(limit) => {
+                                new_phrases_per_round = Some(limit.parse::<usize>()?);
+                                println!("Number of phrases changed.");
+                                info!(
+                                    "User provided new number of phrases per round: '{}' to '{}'",
+                                    self.config.borrow().phrases_per_round,
+                                    new_phrases_per_round
+                                        .context("Failed to parse new phrases per round limit")?
+                                );
+                            }
                         }
                     }
                     "s" | "save" => {
                         debug!("User chose to save settings");
-                        // TODO save settings to config
-                        // if let Some(db) = &new_db {
-                        //     self.config.db_conn_string = db.clone()
-                        // }
-                        // if let Some(p) = &new_phrases_per_round {
-                        //     self.config.phrases_per_round = *p
-                        // }
+                        if let Some(p) = new_phrases_per_round {
+                            self.config.borrow_mut().phrases_per_round = p;
+                        }
                         println!("Settings saved.\n");
                         info!("Settings saved.");
                         break Ok(false);

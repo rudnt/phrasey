@@ -1,10 +1,12 @@
 use log::{debug, trace};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::utils::config::Config;
 use crate::utils::database::{Database, Phrase};
 
-pub struct Engine<'a> {
-    config: &'a Config,
+pub struct Engine {
+    config: Rc<RefCell<Config>>,
     db: Database,
     unrecognized_phrases: Vec<(Phrase, usize)>, // TODO do struct with metadata instead of tuple?
     recognized_phrases: Vec<(Phrase, usize)>,   // TODO do struct with metadata instead of tuple?
@@ -12,11 +14,11 @@ pub struct Engine<'a> {
     next_phrase_idx: usize,
 }
 
-impl<'a> Engine<'a> {
-    pub fn new(config: &'a Config) -> anyhow::Result<Self> {
-        trace!("Initializing engine with config: {:?}", config);
+impl Engine {
+    pub fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
+        trace!("Initializing engine with config: {:?}", config.borrow());
 
-        let db = Database::new(&config.db_conn_string)?;
+        let db = Database::new(&config.borrow().db_conn_string)?;
         let engine = Engine {
             config,
             db,
@@ -32,7 +34,7 @@ impl<'a> Engine<'a> {
 
     pub fn start_round(&mut self) {
         trace!("Starting new round, fetching phrases from database");
-        let phrases = self.db.get_phrases(self.config.phrases_per_round);
+        let phrases = self.db.get_phrases(self.config.borrow().phrases_per_round);
         self.unrecognized_phrases = phrases.into_iter().map(|phrase| (phrase, 0)).collect();
         self.recognized_phrases.clear();
         self.next_phrase_idx = 0;
