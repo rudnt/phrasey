@@ -184,8 +184,6 @@ impl App {
     /// Returns `Ok(true)` if the player chooses to quit after a round, `Ok(false)` if they choose to play again,
     /// or an `Err` if an error occurs during the game loop.
     fn run_game(&mut self) -> anyhow::Result<bool> {
-        self.engine.start_round();
-
         match self.game_loop() {
             Ok(x) => Ok(x),
             Err(e) => {
@@ -237,8 +235,9 @@ impl App {
     fn start_round(&mut self) -> anyhow::Result<bool> {
         println!("\nNew round! Translate the following sentences:\n");
         debug!("Starting a new round");
+        self.engine.start_round();
 
-        while let Some(phrase) = self.engine.get_next_phrase() {
+        while let Some(phrase) = self.engine.get_phrase()? {
             // Clear the screen below New round line
             let (original, translation) = phrase.clone();
 
@@ -251,13 +250,14 @@ impl App {
                 debug!("User triggered quit shortcut during round");
                 println!("\nGoodbye!\n");
                 return Ok(true);
-            } else if let UserInput::Phrase(phrase) = &answer
-                && self.engine.check_current_phrase_and_move_on(phrase)?
-            {
-                println!("\nCorrect!\n");
-                debug!(
-                    "Correct answer: original = '{}', translation = '{}'",
-                    original, translation
+            } else if let UserInput::Phrase(phrase) = &answer{
+
+                let correct = self.engine.check_phrase(phrase)?;
+                if correct {
+                    println!("\nCorrect!\n");
+                    debug!(
+                        "Correct answer: original = '{}', translation = '{}'",
+                        original, translation
                 );
             } else {
                 println!("\nWrong! The correct translation is: {}\n", translation);
@@ -266,8 +266,11 @@ impl App {
                     original, translation
                 );
             }
+            self.engine.advance_phrase(correct)?;
+        }
         }
 
+        self.engine.end_round();
         debug!("Round completed");
         Ok(false)
     }
