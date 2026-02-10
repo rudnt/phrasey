@@ -6,6 +6,14 @@ use std::rc::Rc;
 use crate::utils::config::Config;
 use crate::utils::database::{Database, Phrase};
 
+/// Main heart of the application that controls the whole game state.
+///
+/// The `Engine` manages the flow of a phrase learning game, including:
+/// - Loading phrases from the database
+/// - Tracking which phrases have been recognized/guessed correctly
+/// - Tracking attempts for unrecognized phrases
+/// - Managing the current phrase iteration
+/// - Persisting results back to the database
 pub struct Engine {
     config: Rc<RefCell<Config>>,
     db: Database,
@@ -15,6 +23,16 @@ pub struct Engine {
 }
 
 impl Engine {
+    /// Creates a new Engine instance and sets up connection with the database.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - Reference-counted configuration object containing database connection details
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Engine)` - Successfully initialized engine with database connection
+    /// * `Err` - If database connection fails
     pub fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
         trace!("Initializing engine with config: {:?}", config.borrow());
 
@@ -31,6 +49,11 @@ impl Engine {
         Ok(engine)
     }
 
+    /// Fetches phrases for a new round from the database.
+    ///
+    /// Retrieves a set number of phrases (configured in `phrases_per_round`) and initializes
+    /// the game state for a new round. All phrases start as unrecognized with 0 attempts.
+    /// The current phrase index is set to the first phrase.
      pub fn start_round(&mut self) {
         trace!("Starting new round, fetching phrases from database");
         let phrases = self.db.get_phrases(self.config.borrow().phrases_per_round);
@@ -42,6 +65,16 @@ impl Engine {
         );
     }
 
+    /// Allows iteration over remaining phrases that the user didn't guess yet.
+    ///
+    /// Returns the current phrase in the iteration sequence. Only unrecognized phrases
+    /// are included in the iteration.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Some(&Phrase))` - The current phrase to be guessed
+    /// * `Ok(None)` - No more phrases available in this round
+    /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
     pub fn get_phrase(&mut self) -> anyhow::Result<Option<&Phrase>> {
         if self.unrecognized_phrases.is_empty() {
             trace!("No more phrases available for this round");
@@ -54,6 +87,20 @@ impl Engine {
         Ok(Some(phrase))
     }
 
+    /// Checks the correctness of the answer against the current phrase's translation.
+    ///
+    /// Compares the user's answer with the expected translation (case-insensitive,
+    /// whitespace-trimmed).
+    ///
+    /// # Arguments
+    ///
+    /// * `answer` - The user's translation attempt
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(true)` - Answer matches the expected translation
+    /// * `Ok(false)` - Answer does not match
+    /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
     pub fn check_phrase(&mut self, answer: &String) -> anyhow::Result<bool> {
         let index = self
             .current_phrase_idx
@@ -69,6 +116,20 @@ impl Engine {
         Ok(result)
     }
 
+    /// Moves the iteration to the next phrase.
+    ///
+    /// If the phrase was guessed correctly, it's moved from unrecognized to recognized phrases.
+    /// If not guessed, the attempt counter is incremented and the phrase remains in the
+    /// unrecognized pool. The iteration then advances to the next unrecognized phrase.
+    ///
+    /// # Arguments
+    ///
+    /// * `guessed` - `true` if the user provided the correct answer, `false` otherwise
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(())` - Successfully advanced to next phrase
+    /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
     pub fn advance_phrase(&mut self, guessed: bool) -> anyhow::Result<()> {
         let index = self
             .current_phrase_idx
@@ -86,6 +147,14 @@ impl Engine {
         Ok(())
     }
 
+    /// Clears the game state and updates the database with round results.
+    ///
+    /// Resets all internal state including recognized and unrecognized phrases,
+    /// and the current phrase index. This prepares the engine for a new round.
+    /// 
+    /// # Note
+    ///
+    /// Database update with results is planned but not yet implemented.
     pub fn end_round(&mut self) {
         trace!("Ending round, clearing phrases");
         // TODO update DB with results before clearing phrases
