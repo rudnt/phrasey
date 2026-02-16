@@ -39,6 +39,7 @@ impl App {
         loop {
             self.renderer.render_main_menu();
 
+            // TODO introduce user input handler
             let choice = self.get_input(input_box_text)?;
 
             match choice {
