@@ -54,7 +54,7 @@ impl Engine {
     /// Retrieves a set number of phrases (configured in `phrases_per_round`) and initializes
     /// the game state for a new round. All phrases start as unrecognized with 0 attempts.
     /// The current phrase index is set to the first phrase.
-     pub fn start_round(&mut self) {
+    pub fn start_round(&mut self) {
         trace!("Starting new round, fetching phrases from database");
         let phrases = self.db.get_phrases(self.config.borrow().phrases_per_round);
         self.unrecognized_phrases = phrases.into_iter().map(|phrase| (phrase, 0)).collect();
@@ -81,9 +81,16 @@ impl Engine {
             return Ok(None);
         }
 
-        let index = self.current_phrase_idx.context("No current phrase index set")?;
+        let index = self
+            .current_phrase_idx
+            .context("No current phrase index set")?;
         let phrase = &self.unrecognized_phrases[index].0;
-        trace!("Phrase {:?} fetched (idx: {}, len: {})", phrase, index, self.unrecognized_phrases.len());
+        trace!(
+            "Phrase {:?} fetched (idx: {}, len: {})",
+            phrase,
+            index,
+            self.unrecognized_phrases.len()
+        );
         Ok(Some(phrase))
     }
 
@@ -141,9 +148,13 @@ impl Engine {
         } else {
             self.unrecognized_phrases[index].1 += 1;
         }
-        
-        self.current_phrase_idx = if !self.unrecognized_phrases.is_empty() {Some((index + 1) % self.unrecognized_phrases.len())} else {None};
-        
+
+        self.current_phrase_idx = if !self.unrecognized_phrases.is_empty() {
+            Some((index + 1) % self.unrecognized_phrases.len())
+        } else {
+            None
+        };
+
         Ok(())
     }
 
@@ -151,7 +162,7 @@ impl Engine {
     ///
     /// Resets all internal state including recognized and unrecognized phrases,
     /// and the current phrase index. This prepares the engine for a new round.
-    /// 
+    ///
     /// # Note
     ///
     /// Database update with results is planned but not yet implemented.

@@ -1,7 +1,9 @@
 mod app;
 mod engine;
+mod renderer;
 mod types;
 mod utils;
+
 use log::error;
 use std::cell::RefCell;
 use std::rc::Rc;

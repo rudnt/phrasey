@@ -11,32 +11,33 @@ use std::time::Duration;
 
 use crate::config::Config;
 use crate::engine::Engine;
+use crate::renderer::Renderer;
 use crate::types::{Command, UserInput};
 
 pub struct App {
     config: Rc<RefCell<Config>>,
     engine: Engine,
+    renderer: Renderer,
 }
 
 impl App {
     pub fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
         let engine = Engine::new(config.clone()).context("Failed to initialize engine")?;
-        Ok(App { config, engine })
+        let renderer = Renderer::new(config.clone());
+        Ok(App {
+            config,
+            engine,
+            renderer,
+        })
     }
 
     // TODO better handle cases where msg size is bigger than input box width
     // TODO render Phrasey logo in the top of the screen and change text beneath it to match the current menu (main menu, settings, game, etc.)
     // don't scroll the screen, just update the text in place
     pub fn run(&mut self) -> anyhow::Result<()> {
-        self.render_logo();
-
         let mut input_box_text = "Choose and press Enter";
         loop {
-            println!();
-            println!("  What do you want to do?\n");
-            println!("   [Enter]  New game");
-            println!("   [S]      Settings");
-            println!("   [Q]      Quit\n");
+            self.renderer.render_main_menu();
 
             let choice = self.get_input(input_box_text)?;
 
@@ -77,19 +78,6 @@ impl App {
                 },
             }
         }
-    }
-
-    fn render_logo(&self) {
-        // TODO let's find size of the terminal, clear it and render UI nicely at the top
-        // TODO Let's add some colors to the menu (something CyberPunk-themed)
-        println!();
-        println!("  ██████╗ ██╗  ██╗██████╗  █████╗ ███████╗███████╗██╗   ██╗");
-        println!("  ██╔══██╗██║  ██║██╔══██╗██╔══██╗██╔════╝██╔════╝╚██╗ ██╔╝");
-        println!("  ██████╔╝███████║██████╔╝███████║███████╗█████╗   ╚████╔╝ ");
-        println!("  ██╔═══╝ ██╔══██║██╔══██╗██╔══██║╚════██║██╔══╝    ╚██╔╝  ");
-        println!("  ██║     ██║  ██║██║  ██║██║  ██║███████║███████╗   ██║   ");
-        println!("  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚══════╝   ╚═╝   ");
-        debug!("Logo rendered");
     }
 
     fn get_input(&self, msg: &str) -> anyhow::Result<UserInput> {
@@ -250,24 +238,23 @@ impl App {
                 debug!("User triggered quit shortcut during round");
                 println!("\nGoodbye!\n");
                 return Ok(true);
-            } else if let UserInput::Phrase(phrase) = &answer{
-
+            } else if let UserInput::Phrase(phrase) = &answer {
                 let correct = self.engine.check_phrase(phrase)?;
                 if correct {
                     println!("\nCorrect!\n");
                     debug!(
                         "Correct answer: original = '{}', translation = '{}'",
                         original, translation
-                );
-            } else {
-                println!("\nWrong! The correct translation is: {}\n", translation);
-                debug!(
-                    "Wrong answer: original = '{}', translation = '{}'",
-                    original, translation
-                );
+                    );
+                } else {
+                    println!("\nWrong! The correct translation is: {}\n", translation);
+                    debug!(
+                        "Wrong answer: original = '{}', translation = '{}'",
+                        original, translation
+                    );
+                }
+                self.engine.advance_phrase(correct)?;
             }
-            self.engine.advance_phrase(correct)?;
-        }
         }
 
         self.engine.end_round();
