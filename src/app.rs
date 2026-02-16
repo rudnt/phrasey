@@ -226,10 +226,10 @@ impl App {
         self.engine.start_round();
 
         while let Some(phrase) = self.engine.get_phrase()? {
-            // Clear the screen below New round line
             let (original, translation) = phrase.clone();
 
-            println!("Sentence: {}\n", original);
+            self.renderer.render_guessing_screen(&original);
+
             let answer = self.get_input("Your translation: ")?;
 
             if let UserInput::Command(cmd) = &answer

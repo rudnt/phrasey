@@ -27,21 +27,17 @@ impl Renderer {
     pub fn render_settings_menu(&self) {
         self.clear_screen();
         self.render_logo();
-        println!("  Settings");
-        println!();
-        println!(
-            "   [D] Database URI: {}",
-            self.config.borrow().db_conn_string
-        );
-        println!(
-            "   [P] Phrases per round: {}",
-            self.config.borrow().phrases_per_round
-        );
-        println!("   [S] Save");
-        println!();
-        println!("   [Q] Quit");
+        self.render_settings_options();
 
         trace!("Settings menu rendered");
+    }
+
+    pub fn render_guessing_screen(&self, original: &str) {
+        self.clear_screen();
+        self.render_logo();
+        self.render_original_phrase(original);
+
+        trace!("Game screen rendered for phrase: {}", original);
     }
 
     fn clear_screen(&self) {
@@ -70,5 +66,27 @@ impl Renderer {
         println!();
 
         trace!("Main menu options rendered");
+    }
+
+    fn render_settings_options(&self) {
+        println!("  Settings\n");
+        println!(
+            "   [D] Database URI: {}",
+            self.config.borrow().db_conn_string
+        );
+        println!(
+            "   [P] Phrases per round: {}",
+            self.config.borrow().phrases_per_round
+        );
+        println!("   [S] Save");
+        println!("   [Q] Quit");
+        println!();
+
+        trace!("Settings options rendered");
+    }
+
+    fn render_original_phrase(&self, original: &str) {
+        println!("Sentence: {}\n", original);
+        trace!("Original phrase rendered: {}", original);
     }
 }
