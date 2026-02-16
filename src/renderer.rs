@@ -14,7 +14,7 @@ impl Renderer {
     }
 
     pub fn render_main_menu(&self) {
-        // TODO consider using crossterm to clear terminal and manipulate its content
+        // TODO consider using crossterm to clear terminal and manipulate its content (for compatibility reasons)
         // TODO let's find size of the terminal and render UI nicely at the top centered
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
         self.clear_screen();
@@ -22,6 +22,26 @@ impl Renderer {
         self.render_main_menu_options();
 
         trace!("Main menu rendered");
+    }
+
+    pub fn render_settings_menu(&self) {
+        self.clear_screen();
+        self.render_logo();
+        println!("  Settings");
+        println!();
+        println!(
+            "   [D] Database URI: {}",
+            self.config.borrow().db_conn_string
+        );
+        println!(
+            "   [P] Phrases per round: {}",
+            self.config.borrow().phrases_per_round
+        );
+        println!("   [S] Save");
+        println!();
+        println!("   [Q] Quit");
+
+        trace!("Settings menu rendered");
     }
 
     fn clear_screen(&self) {

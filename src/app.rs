@@ -268,14 +268,7 @@ impl App {
         // TODO adjust settings to fit nicely with other parts of the UI
         let mut new_phrases_per_round = None;
         loop {
-            println!("\nSettings menu\n");
-            println!("[d] Database URI: {}", self.config.borrow().db_conn_string);
-            println!(
-                "[p] Phrases per round: {}",
-                self.config.borrow().phrases_per_round
-            );
-            println!("[s] Save\n");
-            println!("[q] Quit\n");
+            self.renderer.render_settings_menu();
 
             let choice = self.get_input("Your choice: ")?;
             match choice {
