@@ -9,6 +9,7 @@ pub enum Screen {
     MainMenu,
     SettingsMenu,
     GuessingScreen { original: String },
+    GoodbyeScreen,
 }
 
 pub struct Renderer {
@@ -21,10 +22,14 @@ impl Renderer {
     }
 
     pub fn render(&self, screen: Screen, user_input: Option<&str>) -> anyhow::Result<()> {
+        self.clear_screen();
+        self.render_logo();
+
         match screen {
             Screen::MainMenu => self.render_main_menu(user_input),
             Screen::SettingsMenu => self.render_settings_menu(user_input),
             Screen::GuessingScreen { original } => self.render_guessing_screen(&original, user_input),
+            Screen::GoodbyeScreen => self.render_goodbye_screen(),
         }
     }
 
@@ -32,8 +37,6 @@ impl Renderer {
         // TODO consider using crossterm to clear terminal and manipulate its content (for compatibility reasons)
         // TODO let's find size of the terminal and render UI nicely at the top centered
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
-        self.clear_screen();
-        self.render_logo();
         self.render_main_menu_options();
         self.render_input_box(user_input, "Enter your choice...")?;
 
@@ -42,8 +45,6 @@ impl Renderer {
     }
 
     fn render_settings_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
-        self.clear_screen();
-        self.render_logo();
         self.render_settings_options();
         self.render_input_box(user_input, "Enter your choice...")?;
 
@@ -56,12 +57,18 @@ impl Renderer {
         original: &str,
         user_input: Option<&str>,
     ) -> anyhow::Result<()> {
-        self.clear_screen();
-        self.render_logo();
         self.render_original_phrase(original);
         self.render_input_box(user_input, "Enter your answer...")?;
 
         trace!("Game screen rendered for phrase: {}", original);
+        Ok(())
+    }
+
+    fn render_goodbye_screen(&self) -> anyhow::Result<()> {
+        println!("Goodbye!");
+        println!();
+
+        trace!("Goodbye screen rendered");
         Ok(())
     }
 
