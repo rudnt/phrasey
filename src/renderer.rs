@@ -5,6 +5,12 @@ use std::rc::Rc;
 
 use crate::config::Config;
 
+pub enum Screen {
+    MainMenu,
+    SettingsMenu,
+    GuessingScreen { original: String },
+}
+
 pub struct Renderer {
     config: Rc<RefCell<Config>>,
 }
@@ -14,7 +20,15 @@ impl Renderer {
         Renderer { config }
     }
 
-    pub fn render_main_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
+    pub fn render(&self, screen: Screen, user_input: Option<&str>) -> anyhow::Result<()> {
+        match screen {
+            Screen::MainMenu => self.render_main_menu(user_input),
+            Screen::SettingsMenu => self.render_settings_menu(user_input),
+            Screen::GuessingScreen { original } => self.render_guessing_screen(&original, user_input),
+        }
+    }
+
+    fn render_main_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
         // TODO consider using crossterm to clear terminal and manipulate its content (for compatibility reasons)
         // TODO let's find size of the terminal and render UI nicely at the top centered
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
@@ -27,7 +41,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render_settings_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
+    fn render_settings_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
         self.clear_screen();
         self.render_logo();
         self.render_settings_options();
@@ -37,7 +51,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render_guessing_screen(
+    fn render_guessing_screen(
         &self,
         original: &str,
         user_input: Option<&str>,
