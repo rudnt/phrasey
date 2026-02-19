@@ -1,5 +1,6 @@
 mod app;
 mod engine;
+mod event;
 mod renderer;
 mod types;
 mod utils;
