@@ -1,3 +1,5 @@
+pub mod app_state;
+
 use anyhow::Context;
 use log::{debug, trace};
 use std::cell::RefCell;
