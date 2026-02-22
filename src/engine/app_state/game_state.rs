@@ -9,7 +9,7 @@ use super::StateTransition;
 use super::quit_state::QuitState;
 
 use crate::event::event::Event;
-use crate::renderer::{Renderer, Screen};
+use crate::renderer::{Renderer};
 use crate::utils::config::Config;
 use crate::utils::database::Database;
 
@@ -81,10 +81,8 @@ impl AppState for GameState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        self.renderer.render(
-            Screen::GameScreen {
-                original: self.original.clone(),
-            },
+        self.renderer.render_game_screen(
+            &self.original,
             self.user_input.as_deref(),
         )
     }

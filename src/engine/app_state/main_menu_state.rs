@@ -10,7 +10,7 @@ use super::StateTransition;
 use super::SettingsState;
 
 use crate::event::event::Event;
-use crate::renderer::{Renderer, Screen};
+use crate::renderer::{Renderer};
 use crate::utils::config::Config;
 
 pub struct MainMenuState {
@@ -77,6 +77,6 @@ impl AppState for MainMenuState {
 
     fn render(&self) -> anyhow::Result<()> {
         self.renderer
-            .render(Screen::MainMenu, self.user_input.as_deref())
+            .render_main_menu()
     }
 }

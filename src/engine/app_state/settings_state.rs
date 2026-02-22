@@ -7,7 +7,6 @@ use log::warn;
 
 use crate::event::event::Event;
 use crate::renderer::Renderer;
-use crate::renderer::Screen;
 use crate::utils::config::Config;
 
 use super::main_menu_state::MainMenuState;
@@ -74,6 +73,10 @@ impl AppState for SettingsState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        self.renderer.render(Screen::SettingsMenu, self.user_input.as_deref())
+        // TODO implement settings menu rendering:
+        // - no input box when choosing option
+        // - input box when changing option
+        // - some sort of indication of which option is being changed
+        self.renderer.render_settings_menu(self.user_input.as_deref(), None)
     }
 }

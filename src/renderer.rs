@@ -1,16 +1,13 @@
+use anyhow::Context;
 use log::trace;
 use std::cell::RefCell;
 use std::io::Write;
 use std::rc::Rc;
+use crossterm::cursor;
+use crossterm::execute;
+use std::io::stdout;
 
 use crate::config::Config;
-
-pub enum Screen {
-    MainMenu,
-    SettingsMenu,
-    GuessingScreen { original: String },
-    GoodbyeScreen,
-}
 
 pub struct Renderer {
     config: Rc<RefCell<Config>>,
@@ -21,42 +18,43 @@ impl Renderer {
         Renderer { config }
     }
 
-    pub fn render(&self, screen: Screen, user_input: Option<&str>) -> anyhow::Result<()> {
-        self.clear_screen();
-        self.render_logo();
-
-        match screen {
-            Screen::MainMenu => self.render_main_menu(user_input),
-            Screen::SettingsMenu => self.render_settings_menu(user_input),
-            Screen::GuessingScreen { original } => self.render_guessing_screen(&original, user_input),
-            Screen::GoodbyeScreen => self.render_goodbye_screen(),
-        }
-    }
-
-    fn render_main_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
+    pub fn render_main_menu(&self) -> anyhow::Result<()> {
         // TODO consider using crossterm to clear terminal and manipulate its content (for compatibility reasons)
         // TODO let's find size of the terminal and render UI nicely at the top centered
         // TODO Let's add some colors to the menu (something CyberPunk-themed)
+        self.hide_cursor()?;
+        self.clear_screen();
+        self.render_logo();
         self.render_main_menu_options();
-        self.render_input_box(user_input, "Enter your choice...")?;
 
         trace!("Main menu rendered");
         Ok(())
     }
 
-    fn render_settings_menu(&self, user_input: Option<&str>) -> anyhow::Result<()> {
+    pub fn render_settings_menu(&self, user_input: Option<&str>, placeholder_text: Option<&str>) -> anyhow::Result<()> {
+        self.clear_screen();
+        self.render_logo();
         self.render_settings_options();
-        self.render_input_box(user_input, "Enter your choice...")?;
+
+        if placeholder_text.is_some() {
+            self.render_input_box(user_input, placeholder_text.unwrap())?;
+        } else if user_input.is_some(){
+            self.render_input_box(user_input, "Sorry, something went wrong...")?;
+        } else {
+            self.hide_cursor()?;
+        }
 
         trace!("Settings menu rendered");
         Ok(())
     }
 
-    fn render_guessing_screen(
+    pub fn render_game_screen(
         &self,
         original: &str,
         user_input: Option<&str>,
     ) -> anyhow::Result<()> {
+        self.clear_screen();
+        self.render_logo();
         self.render_original_phrase(original);
         self.render_input_box(user_input, "Enter your answer...")?;
 
@@ -64,7 +62,10 @@ impl Renderer {
         Ok(())
     }
 
-    fn render_goodbye_screen(&self) -> anyhow::Result<()> {
+    pub fn render_quit_screen(&self) -> anyhow::Result<()> {
+        self.hide_cursor()?;
+        self.clear_screen();
+        self.render_logo();
         println!("Goodbye!");
         println!();
 
@@ -72,6 +73,17 @@ impl Renderer {
         Ok(())
     }
 
+    fn hide_cursor(&self) -> anyhow::Result<()> {
+        execute!(stdout(), cursor::Hide).context("Failed to hide cursor")?;
+        trace!("Cursor hidden");
+        Ok(())
+    }
+
+    fn show_cursor(&self) -> anyhow::Result<()> {
+        execute!(stdout(), cursor::Show).context("Failed to show cursor")?;
+        trace!("Cursor shown");
+        Ok(())
+    }
     fn clear_screen(&self) {
         print!("\x1B[2J\x1B[1;1H");
         trace!("Screen cleared");
@@ -108,6 +120,7 @@ impl Renderer {
         let bottom_border = format!("└{}┘", "─".repeat(box_width));
         let text_lines = if let Some(text) = text {
             // TODO split text into chunks per line
+            // TODO move cursor to the end of last character (for text)
             // TODO combine formats in a loop for multiple lines
             format!("│ {}{} │", text, " ".repeat(text_width - text.len()))
         } else {
@@ -148,5 +161,11 @@ impl Renderer {
     fn render_original_phrase(&self, original: &str) {
         println!("   Sentence: {}\n", original);
         trace!("Original phrase rendered: {}", original);
+    }
+}
+
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        self.show_cursor().expect("Failed to show cursor");
     }
 }

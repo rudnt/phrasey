@@ -1,4 +1,3 @@
-mod app;
 mod engine;
 mod event;
 mod renderer;
@@ -9,7 +8,7 @@ use log::error;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::app::App;
+use crate::engine::app::App;
 use crate::utils::{args, config, logging};
 
 fn main() -> anyhow::Result<()> {

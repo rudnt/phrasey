@@ -7,7 +7,7 @@ use super::AppState;
 use super::StateTransition;
 
 use crate::event::event::Event;
-use crate::renderer::{Renderer, Screen};
+use crate::renderer::{Renderer};
 use crate::utils::config::Config;
 
 pub struct QuitState {
@@ -28,6 +28,6 @@ impl AppState for QuitState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        self.renderer.render(Screen::GoodbyeScreen, None)
+        self.renderer.render_quit_screen()
     }
 }
