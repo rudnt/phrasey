@@ -2,12 +2,14 @@ mod game_state;
 mod main_menu_state;
 mod quit_state;
 mod state_transition;
+mod settings_state;
 
 pub use main_menu_state::MainMenuState;
 pub use state_transition::StateTransition;
 
 use game_state::GameState;
 use quit_state::QuitState;
+use settings_state::SettingsState;
 
 use std::{cell::RefCell, rc::Rc};
 
