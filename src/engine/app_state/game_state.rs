@@ -11,34 +11,26 @@ use super::quit_state::QuitState;
 use crate::event::event::Event;
 use crate::renderer::{Renderer};
 use crate::utils::config::Config;
-use crate::utils::database::Database;
+use crate::engine::Engine;
 
 pub struct GameState {
-    db: Database,
+    engine: Engine,
     renderer: Renderer,
     config: Rc<RefCell<Config>>,
 
     user_input: Option<String>,
-    phrases: Vec<(String, String)>,
-    original: String,
 }
 
 impl AppState for GameState {
     fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
-        let db = Database::new(&config.borrow().db_conn_string.clone())?;
-        let phrases = db.get_phrases(config.borrow().phrases_per_round);
-        let original = phrases
-            .first()
-            .map(|(original, _)| original.clone())
-            .context("No phrases found in database")?;
+        let mut engine = Engine::new(config.clone())?;
+        engine.start_round();
 
         Ok(GameState {
-            db,
+            engine,
             renderer: Renderer::new(config.clone()),
             config: config.clone(),
             user_input: None,
-            phrases,
-            original,
         })
     }
 
@@ -81,8 +73,12 @@ impl AppState for GameState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
+        let phrase = self.engine.get_phrase()?
+            .map(|(phrase, _)| phrase)
+            .context("No phrase available")?;
+        
         self.renderer.render_game_screen(
-            &self.original,
+            &phrase,
             self.user_input.as_deref(),
         )
     }

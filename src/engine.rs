@@ -1,3 +1,4 @@
+pub mod app;
 pub mod app_state;
 
 use anyhow::Context;
@@ -77,7 +78,7 @@ impl Engine {
     /// * `Ok(Some(&Phrase))` - The current phrase to be guessed
     /// * `Ok(None)` - No more phrases available in this round
     /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
-    pub fn get_phrase(&mut self) -> anyhow::Result<Option<&Phrase>> {
+    pub fn get_phrase(&self) -> anyhow::Result<Option<&Phrase>> {
         if self.unrecognized_phrases.is_empty() {
             trace!("No more phrases available for this round");
             return Ok(None);
