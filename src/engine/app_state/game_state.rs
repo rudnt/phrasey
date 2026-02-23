@@ -1,4 +1,3 @@
-use anyhow::Context;
 use log::{error, trace};
 
 use std::cell::RefCell;
@@ -126,19 +125,15 @@ impl AppState for GameState {
         match self.game_phase {
             GamePhase::Input => {
                 trace!("Rendering active game state");
-                let phrase = self
-                    .game
-                    .get_phrase()?
-                    .map(|(phrase, _)| phrase)
-                    .context("No phrase available")?;
-
+                let phrase = self.game.get_current_original()?;
                 self.renderer
-                    .render_active_game_screen(phrase, self.user_input.as_deref())
+                    .render_guessing_screen(phrase, self.user_input.as_deref())
             }
             GamePhase::Feedback(is_correct) => {
                 trace!("Rendering feedback screen, is_correct={}", is_correct);
-                // TODO self.renderer.render_feedback_screen(is_correct)
-                Ok(())
+                let correct_answer = self.game.get_current_translation()?;
+                self.renderer
+                    .render_feedback_screen(is_correct, correct_answer)
             }
             GamePhase::RoundEnd => {
                 trace!("Rendering round end screen");

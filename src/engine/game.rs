@@ -84,22 +84,13 @@ impl Game {
         Ok(())
     }
 
-    /// Allows iteration over remaining phrases that the user didn't guess yet.
-    ///
-    /// Returns the current phrase in the iteration sequence. Only unrecognized phrases
-    /// are included in the iteration.
+    /// Returns the original text of the current phrase.
     ///
     /// # Returns
     ///
-    /// * `Ok(Some(&Phrase))` - The current phrase to be guessed
-    /// * `Ok(None)` - No more phrases available in this round
+    /// * `Ok(&str)` - The original phrase text to be translated
     /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
-    pub fn get_phrase(&self) -> anyhow::Result<Option<&Phrase>> {
-        if self.unrecognized_phrases.is_empty() {
-            trace!("No more phrases available for this round");
-            return Ok(None);
-        }
-
+    pub fn get_current_original(&self) -> anyhow::Result<&str> {
         let index = self
             .current_phrase_idx
             .context("No current phrase index set")?;
@@ -110,7 +101,27 @@ impl Game {
             index,
             self.unrecognized_phrases.len()
         );
-        Ok(Some(phrase))
+        Ok(phrase.0.as_str())
+    }
+
+    /// Returns the translation text of the current phrase.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(&str)` - The expected translation of the current phrase
+    /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
+    pub fn get_current_translation(&self) -> anyhow::Result<&str> {
+        let index = self
+            .current_phrase_idx
+            .context("No current phrase index set")?;
+        let phrase = &self.unrecognized_phrases[index].0;
+        trace!(
+            "Phrase {:?} fetched (idx: {}, len: {})",
+            phrase,
+            index,
+            self.unrecognized_phrases.len()
+        );
+        Ok(phrase.1.as_str())
     }
 
     /// Checks the correctness of the answer against the current phrase's translation.

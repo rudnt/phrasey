@@ -52,7 +52,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render_active_game_screen(
+    pub fn render_guessing_screen(
         &self,
         original: &str,
         user_input: Option<&str>,
@@ -63,6 +63,26 @@ impl Renderer {
         self.render_input_box(user_input, "Enter your answer...")?;
 
         trace!("Game screen rendered for phrase: {}", original);
+        Ok(())
+    }
+
+    pub fn render_feedback_screen(
+        &self,
+        is_correct: bool,
+        correct_answer: &str,
+    ) -> anyhow::Result<()> {
+        self.clear_screen();
+        self.render_logo();
+
+        // TODO introduce proper feedback screen with some colors and maybe ASCII art (something CyberPunk-themed)
+        if is_correct {
+            println!("Correct!");
+        } else {
+            println!("Incorrect! The correct answer was:\n\t{}", correct_answer);
+        }
+        println!();
+
+        trace!("Feedback screen rendered, is_correct={}", is_correct);
         Ok(())
     }
 
