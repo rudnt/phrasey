@@ -40,7 +40,7 @@ impl EventDispatcher {
             match code {
                 ct_event::KeyCode::Enter => return Ok(Event::Enter),
                 ct_event::KeyCode::Esc => return Ok(Event::Quit),
-                // TODO introduce back event
+                ct_event::KeyCode::Tab => return Ok(Event::Back),
                 ct_event::KeyCode::Backspace => return Ok(Event::RemoveCharacter),
                 ct_event::KeyCode::Char(c) => return Ok(Event::Character(c)),
                 _ => {
