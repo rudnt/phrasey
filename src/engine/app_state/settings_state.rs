@@ -1,17 +1,15 @@
-
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use log::trace;
-use log::warn;
 
-use crate::event::event::Event;
+use crate::events::event::Event;
 use crate::renderer::Renderer;
 use crate::utils::config::Config;
 
-use super::main_menu_state::MainMenuState;
 use super::AppState;
 use super::StateTransition;
+use super::main_menu_state::MainMenuState;
 use super::quit_state::QuitState;
 
 pub struct SettingsState {
@@ -37,8 +35,7 @@ impl AppState for SettingsState {
             }
             Event::Back => {
                 trace!("Going back to main menu");
-                let main_menu_state =
-                    MainMenuState::new(self.config.clone())?;
+                let main_menu_state = MainMenuState::new(self.config.clone())?;
                 return Ok(StateTransition::Transition(Box::new(main_menu_state)));
             }
             Event::Quit => {
@@ -64,9 +61,6 @@ impl AppState for SettingsState {
                     self.user_input = Some(c.to_string());
                 }
             }
-            _ => {
-                warn!("Unhandled event: {:?}", event);
-            }
         };
 
         Ok(StateTransition::None)
@@ -77,6 +71,7 @@ impl AppState for SettingsState {
         // - no input box when choosing option
         // - input box when changing option
         // - some sort of indication of which option is being changed
-        self.renderer.render_settings_menu(self.user_input.as_deref(), None)
+        self.renderer
+            .render_settings_menu(self.user_input.as_deref(), None)
     }
 }

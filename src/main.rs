@@ -1,5 +1,5 @@
 mod engine;
-mod event;
+mod events;
 mod renderer;
 mod types;
 mod utils;

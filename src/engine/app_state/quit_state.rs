@@ -6,8 +6,8 @@ use log::trace;
 use super::AppState;
 use super::StateTransition;
 
-use crate::event::event::Event;
-use crate::renderer::{Renderer};
+use crate::events::event::Event;
+use crate::renderer::Renderer;
 use crate::utils::config::Config;
 
 pub struct QuitState {

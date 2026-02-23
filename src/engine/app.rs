@@ -6,7 +6,7 @@ use super::app_state::MainMenuState;
 use super::app_state::StateTransition;
 
 use crate::config::Config;
-use crate::event::event_dispatcher::EventDispatcher;
+use crate::events::event_dispatcher::EventDispatcher;
 
 pub struct App {
     config: Rc<RefCell<Config>>,
@@ -15,7 +15,6 @@ pub struct App {
 
 impl App {
     pub fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
-
         Ok(App {
             config,
             user_input: EventDispatcher::new(),

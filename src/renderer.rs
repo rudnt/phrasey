@@ -1,11 +1,11 @@
 use anyhow::Context;
+use crossterm::cursor;
+use crossterm::execute;
 use log::trace;
 use std::cell::RefCell;
 use std::io::Write;
-use std::rc::Rc;
-use crossterm::cursor;
-use crossterm::execute;
 use std::io::stdout;
+use std::rc::Rc;
 
 use crate::config::Config;
 
@@ -31,14 +31,18 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render_settings_menu(&self, user_input: Option<&str>, placeholder_text: Option<&str>) -> anyhow::Result<()> {
+    pub fn render_settings_menu(
+        &self,
+        user_input: Option<&str>,
+        placeholder_text: Option<&str>,
+    ) -> anyhow::Result<()> {
         self.clear_screen();
         self.render_logo();
         self.render_settings_options();
 
         if placeholder_text.is_some() {
             self.render_input_box(user_input, placeholder_text.unwrap())?;
-        } else if user_input.is_some(){
+        } else if user_input.is_some() {
             self.render_input_box(user_input, "Sorry, something went wrong...")?;
         } else {
             self.hide_cursor()?;
@@ -48,7 +52,7 @@ impl Renderer {
         Ok(())
     }
 
-    pub fn render_game_screen(
+    pub fn render_active_game_screen(
         &self,
         original: &str,
         user_input: Option<&str>,

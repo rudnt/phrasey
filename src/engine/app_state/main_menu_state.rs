@@ -6,10 +6,10 @@ use log::{trace, warn};
 use super::AppState;
 use super::GameState;
 use super::QuitState;
-use super::StateTransition;
 use super::SettingsState;
+use super::StateTransition;
 
-use crate::event::event::Event;
+use crate::events::event::Event;
 use crate::renderer::Renderer;
 use crate::utils::config::Config;
 
@@ -38,23 +38,21 @@ impl AppState for MainMenuState {
                 let quit_state = QuitState::new(self.config.clone())?;
                 return Ok(StateTransition::Transition(Box::new(quit_state)));
             }
-            Event::Character(c) => {
-                match c.to_lowercase().next() {
-                    Some('s') => {
-                        trace!("Transitioning to settings state");
-                        let settings_state = SettingsState::new(self.config.clone())?;
-                        return Ok(StateTransition::Transition(Box::new(settings_state)));
-                    }
-                    Some('q') => {
-                        trace!("Quitting application");
-                        let quit_state = QuitState::new(self.config.clone())?;
-                        return Ok(StateTransition::Transition(Box::new(quit_state)));
-                    }
-                    _ => {
-                        trace!("Unhandled character input in main menu: {}", c);
-                    }
+            Event::Character(c) => match c.to_lowercase().next() {
+                Some('s') => {
+                    trace!("Transitioning to settings state");
+                    let settings_state = SettingsState::new(self.config.clone())?;
+                    return Ok(StateTransition::Transition(Box::new(settings_state)));
                 }
-            }
+                Some('q') => {
+                    trace!("Quitting application");
+                    let quit_state = QuitState::new(self.config.clone())?;
+                    return Ok(StateTransition::Transition(Box::new(quit_state)));
+                }
+                _ => {
+                    trace!("Unhandled character input in main menu: {}", c);
+                }
+            },
             _ => {
                 warn!("Unhandled event: {:?}", event);
             }

@@ -1,8 +1,8 @@
 mod game_state;
 mod main_menu_state;
 mod quit_state;
-mod state_transition;
 mod settings_state;
+mod state_transition;
 
 pub use main_menu_state::MainMenuState;
 pub use state_transition::StateTransition;
@@ -13,7 +13,7 @@ use settings_state::SettingsState;
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{event::event::Event, utils::config::Config};
+use crate::{events::event::Event, utils::config::Config};
 
 pub trait AppState {
     fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self>

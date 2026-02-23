@@ -9,7 +9,7 @@ use super::StateTransition;
 use super::quit_state::QuitState;
 
 use crate::engine::game::Game;
-use crate::event::event::Event;
+use crate::events::event::Event;
 use crate::renderer::Renderer;
 use crate::utils::config::Config;
 
