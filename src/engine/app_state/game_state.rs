@@ -7,6 +7,7 @@ use super::AppState;
 use super::StateTransition;
 use super::quit_state::QuitState;
 
+use crate::engine::app_state::MainMenuState;
 use crate::engine::game::Game;
 use crate::events::event::Event;
 use crate::renderer::Renderer;
@@ -104,18 +105,27 @@ impl AppState for GameState {
                     trace!("User input is empty, cannot remove character");
                 }
             }
-            Event::Character(c) => {
-                if self.game_phase != GamePhase::Input {
-                    trace!("Cannot modify input, game is not in input phase");
-                    return Ok(StateTransition::None);
+            Event::Character(c) => match self.game_phase {
+                GamePhase::Input => {
+                    trace!("Adding character '{}' to user input", c);
+                    if let Some(input) = &mut self.user_input {
+                        input.push(c);
+                    } else {
+                        self.user_input = Some(c.to_string());
+                    }
                 }
-
-                if let Some(input) = &mut self.user_input {
-                    input.push(c);
-                } else {
-                    self.user_input = Some(c.to_string());
+                GamePhase::RoundEnd => {
+                    trace!("RoundEnd phase: character input '{}'", c);
+                    if c.to_lowercase().next() == Some('q') {
+                        trace!("Quitting application from round end screen");
+                        let main_menu = MainMenuState::new(self.config.clone())?;
+                        return Ok(StateTransition::Transition(Box::new(main_menu)));
+                    }
                 }
-            }
+                GamePhase::Feedback(_) => {
+                    trace!("Feedback phase: ignoring character input '{}'", c)
+                }
+            },
         };
 
         Ok(StateTransition::None)
@@ -137,8 +147,7 @@ impl AppState for GameState {
             }
             GamePhase::RoundEnd => {
                 trace!("Rendering round end screen");
-                // TODO self.renderer.render_round_end_screen()
-                Ok(())
+                self.renderer.render_round_end_screen()
             }
         }
     }

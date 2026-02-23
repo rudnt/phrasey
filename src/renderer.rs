@@ -52,6 +52,7 @@ impl Renderer {
         Ok(())
     }
 
+    // TODO overall game screens should have progress indicator, some nice looking art and colors (something CyberPunk-themed)
     pub fn render_guessing_screen(
         &self,
         original: &str,
@@ -59,6 +60,7 @@ impl Renderer {
     ) -> anyhow::Result<()> {
         self.clear_screen();
         self.render_logo();
+        // TODO render proper guessing screen with some colors and maybe ASCII art (something CyberPunk-themed)
         self.render_original_phrase(original);
         self.render_input_box(user_input, "Enter your answer...")?;
 
@@ -86,10 +88,24 @@ impl Renderer {
         Ok(())
     }
 
+    pub fn render_round_end_screen(&self) -> anyhow::Result<()> {
+        self.clear_screen();
+        self.render_logo();
+        // TODO introduce proper round end screen with some colors and maybe ASCII art (something CyberPunk-themed)
+        println!("Round completed! Ready for the next one?");
+        println!("    [Enter]  Next game");
+        println!("    [Q]      Quit");
+        println!();
+
+        trace!("Round end screen rendered");
+        Ok(())
+    }
+
     pub fn render_quit_screen(&self) -> anyhow::Result<()> {
         self.hide_cursor()?;
         self.clear_screen();
         self.render_logo();
+        // TODO introduce proper goodbye screen with some colors and maybe ASCII art (something CyberPunk-themed)
         println!("Goodbye!");
         println!();
 
