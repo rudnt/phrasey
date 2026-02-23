@@ -10,20 +10,17 @@ use super::StateTransition;
 use super::SettingsState;
 
 use crate::event::event::Event;
-use crate::renderer::{Renderer};
+use crate::renderer::Renderer;
 use crate::utils::config::Config;
 
 pub struct MainMenuState {
     config: Rc<RefCell<Config>>,
     renderer: Renderer,
-
-    user_input: Option<String>,
 }
 
 impl AppState for MainMenuState {
     fn new(config: Rc<RefCell<Config>>) -> anyhow::Result<Self> {
         Ok(MainMenuState {
-            user_input: None,
             renderer: Renderer::new(config.clone()),
             config,
         })
@@ -32,39 +29,30 @@ impl AppState for MainMenuState {
     fn handle_event(&mut self, event: Event) -> anyhow::Result<StateTransition> {
         match event {
             Event::Enter => {
-                if self.user_input.is_none() {
-                    trace!("Creating new game state");
-                    let game_state = GameState::new(self.config.clone())?;
-                    return Ok(StateTransition::Transition(Box::new(game_state)));
-                } else {
-                    trace!("User input is not empty, cannot start game");
-                    self.user_input = None;
-                    // TODO show error message
-                }
+                trace!("Creating new game state");
+                let game_state = GameState::new(self.config.clone())?;
+                return Ok(StateTransition::Transition(Box::new(game_state)));
             }
             Event::Quit => {
                 trace!("Quitting application");
                 let quit_state = QuitState::new(self.config.clone())?;
                 return Ok(StateTransition::Transition(Box::new(quit_state)));
             }
-            Event::RemoveCharacter => {
-                if let Some(input) = &mut self.user_input {
-                    input.pop();
-                    if input.is_empty() {
-                        self.user_input = None;
-                    }
-                } else {
-                    trace!("User input is empty, cannot remove character");
-                }
-            }
             Event::Character(c) => {
-                if let Some(input) = &mut self.user_input {
-                    input.push(c);
-                } else if c.to_lowercase().next() == Some('s') {
-                    let settings_state = SettingsState::new(self.config.clone())?;
-                    return Ok(StateTransition::Transition(Box::new(settings_state)));
-                } else {
-                    self.user_input = Some(c.to_string());
+                match c.to_lowercase().next() {
+                    Some('s') => {
+                        trace!("Transitioning to settings state");
+                        let settings_state = SettingsState::new(self.config.clone())?;
+                        return Ok(StateTransition::Transition(Box::new(settings_state)));
+                    }
+                    Some('q') => {
+                        trace!("Quitting application");
+                        let quit_state = QuitState::new(self.config.clone())?;
+                        return Ok(StateTransition::Transition(Box::new(quit_state)));
+                    }
+                    _ => {
+                        trace!("Unhandled character input in main menu: {}", c);
+                    }
                 }
             }
             _ => {
@@ -76,7 +64,6 @@ impl AppState for MainMenuState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        self.renderer
-            .render_main_menu()
+        self.renderer.render_main_menu()
     }
 }
