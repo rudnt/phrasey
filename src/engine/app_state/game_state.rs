@@ -61,15 +61,13 @@ impl AppState for GameState {
             }
             Event::RemoveCharacter => {
                 trace!("Handling RemoveCharacter event");
-                self.handle_remove_character_event()?;
+                return self.handle_remove_character_event();
             }
             Event::Character(c) => {
                 trace!("Handling character input: '{}'", c);
-                self.handle_character_event(c)?;
+                return self.handle_character_event(c);
             }
         };
-
-        Ok(StateTransition::None)
     }
 
     fn render(&self) -> anyhow::Result<()> {
@@ -155,8 +153,8 @@ impl GameState {
             }
             GamePhase::RoundEnd => {
                 trace!("RoundEnd phase: character input '{}'", c);
-                if c.to_lowercase().next() == Some('q') {
-                    trace!("Quitting application from round end screen");
+                if c.to_lowercase().next() == Some('b') {
+                    trace!("Going back to main menu from round end screen");
                     let main_menu = MainMenuState::new(self.config.clone())?;
                     return Ok(StateTransition::Transition(Box::new(main_menu)));
                 }
