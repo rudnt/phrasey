@@ -75,12 +75,18 @@ impl AppState for SettingsState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        // TODO implement settings menu rendering:
-        // - no input box when choosing option
-        // - input box when changing option
         // - some sort of indication of which option is being changed
+        let placeholder_text = match self.settings_phase {
+            SettingsPhase::ChoosingOption => None,
+            SettingsPhase::ChangingOption(option) => {
+                match option {
+                    'p' => Some("Enter number of phrases per round..."),
+                    _ => Some("Sorry, something went wrong..."),
+                }
+            }
+        };
         self.renderer
-            .render_settings_menu(self.user_input.as_deref(), None)
+            .render_settings_menu(self.user_input.as_deref(), placeholder_text, &self.config_clone)
     }
 }
 

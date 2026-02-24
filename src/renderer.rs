@@ -35,10 +35,11 @@ impl Renderer {
         &self,
         user_input: Option<&str>,
         placeholder_text: Option<&str>,
+        config: &Config,
     ) -> anyhow::Result<()> {
         self.clear_screen();
         self.render_logo();
-        self.render_settings_options();
+        self.render_settings_options(config);
 
         if placeholder_text.is_some() {
             self.render_input_box(user_input, placeholder_text.unwrap())?;
@@ -181,15 +182,15 @@ impl Renderer {
         Ok(())
     }
 
-    fn render_settings_options(&self) {
+    fn render_settings_options(&self, config: &Config) {
         println!("   Settings\n");
         println!(
             "    [D] Database URI: {}",
-            self.config.borrow().db_conn_string
+            config.db_conn_string
         );
         println!(
             "    [P] Phrases per round: {}",
-            self.config.borrow().phrases_per_round
+            config.phrases_per_round
         );
         println!("    [S] Save");
         println!("    [B] Back to main menu");
