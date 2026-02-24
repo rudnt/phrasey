@@ -94,7 +94,7 @@ impl Renderer {
         // TODO introduce proper round end screen with some colors and maybe ASCII art (something CyberPunk-themed)
         println!("Round completed! Ready for the next one?");
         println!("    [Enter]  Next game");
-        println!("    [Q]      Quit");
+        println!("    [B]      Back to main menu");
         println!();
 
         trace!("Round end screen rendered");
@@ -192,7 +192,7 @@ impl Renderer {
             self.config.borrow().phrases_per_round
         );
         println!("    [S] Save");
-        println!("    [Q] Quit");
+        println!("    [B] Back to main menu");
         println!();
 
         trace!("Settings options rendered");

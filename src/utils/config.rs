@@ -13,7 +13,7 @@ pub fn load<P: AsRef<Path>>(path: P) -> anyhow::Result<Config> {
     Ok(config)
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     pub db_conn_string: String,
 
