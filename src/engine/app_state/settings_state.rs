@@ -75,7 +75,7 @@ impl AppState for SettingsState {
     }
 
     fn render(&self) -> anyhow::Result<()> {
-        // - some sort of indication of which option is being changed
+        // TODO some sort of indication of which option is being changed
         let placeholder_text = match self.settings_phase {
             SettingsPhase::ChoosingOption => None,
             SettingsPhase::ChangingOption(option) => {
