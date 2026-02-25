@@ -81,7 +81,8 @@ impl Renderer {
         if is_correct {
             println!("Correct!");
         } else {
-            println!("Incorrect! The correct answer was:\n\t{}", correct_answer);
+            println!("Incorrect! The correct answer was:\n");
+            println!("    {}", correct_answer);
         }
         println!();
 
@@ -93,7 +94,7 @@ impl Renderer {
         self.clear_screen();
         self.render_logo();
         // TODO introduce proper round end screen with some colors and maybe ASCII art (something CyberPunk-themed)
-        println!("Round completed! Ready for the next one?");
+        println!("Round completed! Ready for the next one?\n");
         println!("    [Enter]  Next game");
         println!("    [B]      Back to main menu");
         println!();
@@ -159,12 +160,24 @@ impl Renderer {
 
         let top_border = format!("┌{}┐", "─".repeat(box_width));
         let bottom_border = format!("└{}┘", "─".repeat(box_width));
+        let mut cursor_position = 0;
         let text_lines = if let Some(text) = text {
             // TODO split text into chunks per line
             // TODO move cursor to the end of last character (for text)
             // TODO combine formats in a loop for multiple lines
-            format!("│ {}{} │", text, " ".repeat(text_width - text.len()))
+            let mut lines = Vec::new();
+            for chunk in text.chars().collect::<Vec<char>>().chunks(text_width) {
+                let line = chunk.iter().collect::<String>();
+                lines.push(format!(
+                    "│ {}{} │",
+                    line,
+                    " ".repeat(text_width - line.len())
+                ));
+                cursor_position = line.len() + 3;
+            }
+            lines.join("\n")
         } else {
+            cursor_position = 3;
             format!(
                 "│ \x1b[90m{}\x1b[0m{} │",
                 placeholder_text,
@@ -172,10 +185,11 @@ impl Renderer {
             )
         };
 
+        self.show_cursor()?;
         println!(" {} ", top_border);
         println!(" {} ", text_lines);
         println!(" {} ", bottom_border);
-        print!("\x1b[2A\x1b[2C");
+        print!("\x1b[2A\x1b[{}C", cursor_position);
         std::io::stdout().flush()?;
 
         trace!("Input box rendered");
@@ -184,14 +198,7 @@ impl Renderer {
 
     fn render_settings_options(&self, config: &Config) {
         println!("   Settings\n");
-        println!(
-            "    [D] Database URI: {}",
-            config.db_conn_string
-        );
-        println!(
-            "    [P] Phrases per round: {}",
-            config.phrases_per_round
-        );
+        println!("    [P] Phrases per round: {}", config.phrases_per_round);
         println!("    [S] Save");
         println!("    [B] Back to main menu");
         println!();

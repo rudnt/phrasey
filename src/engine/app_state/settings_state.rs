@@ -1,4 +1,3 @@
-use std::cell::Ref;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -78,15 +77,16 @@ impl AppState for SettingsState {
         // TODO some sort of indication of which option is being changed
         let placeholder_text = match self.settings_phase {
             SettingsPhase::ChoosingOption => None,
-            SettingsPhase::ChangingOption(option) => {
-                match option {
-                    'p' => Some("Enter number of phrases per round..."),
-                    _ => Some("Sorry, something went wrong..."),
-                }
-            }
+            SettingsPhase::ChangingOption(option) => match option {
+                'p' => Some("Enter number of phrases per round..."),
+                _ => Some("Sorry, something went wrong..."),
+            },
         };
-        self.renderer
-            .render_settings_menu(self.user_input.as_deref(), placeholder_text, &self.config_clone)
+        self.renderer.render_settings_menu(
+            self.user_input.as_deref(),
+            placeholder_text,
+            &self.config_clone,
+        )
     }
 }
 
@@ -96,8 +96,14 @@ impl SettingsState {
             SettingsPhase::ChoosingOption => trace!("User submitted input while choosing option"), // No-op
             SettingsPhase::ChangingOption(_) => {
                 // TODO implement better way to update settings
-                trace!("User submitted input while changing option: {:?}", self.user_input);
-                let parsed = self.user_input.as_ref().and_then(|input| input.parse::<usize>().ok());
+                trace!(
+                    "User submitted input while changing option: {:?}",
+                    self.user_input
+                );
+                let parsed = self
+                    .user_input
+                    .as_ref()
+                    .and_then(|input| input.parse::<usize>().ok());
                 if let Some(value) = parsed {
                     self.config_clone.phrases_per_round = value;
                     trace!("Updated phrases_per_round to {}", value);
@@ -114,26 +120,24 @@ impl SettingsState {
 
     fn handle_character_event(&mut self, c: char) -> anyhow::Result<StateTransition> {
         match self.settings_phase {
-            SettingsPhase::ChoosingOption => {
-                match c.to_lowercase().next() {
-                    Some('p') => {
-                        trace!("User selected to change phrase source");
-                        self.settings_phase = SettingsPhase::ChangingOption('p');
-                        return Ok(StateTransition::None);
-                    }
-                    Some('s') => {
-                        trace!("User selected to save settings");
-                        *self.config.borrow_mut() = self.config_clone.clone();
-                        return Ok(StateTransition::None);
-                    }
-                    Some('b') => {
-                        trace!("User selected to go back to the main menu");
-                        let main_menu_state = MainMenuState::new(self.config.clone())?;
-                        return Ok(StateTransition::Transition(Box::new(main_menu_state)));
-                    }
-                    _ => trace!("User input '{}' does not correspond to any option", c),
+            SettingsPhase::ChoosingOption => match c.to_lowercase().next() {
+                Some('p') => {
+                    trace!("User selected to change phrase source");
+                    self.settings_phase = SettingsPhase::ChangingOption('p');
+                    return Ok(StateTransition::None);
                 }
-            }
+                Some('s') => {
+                    trace!("User selected to save settings");
+                    *self.config.borrow_mut() = self.config_clone.clone();
+                    return Ok(StateTransition::None);
+                }
+                Some('b') => {
+                    trace!("User selected to go back to the main menu");
+                    let main_menu_state = MainMenuState::new(self.config.clone())?;
+                    return Ok(StateTransition::Transition(Box::new(main_menu_state)));
+                }
+                _ => trace!("User input '{}' does not correspond to any option", c),
+            },
             SettingsPhase::ChangingOption(_) => {
                 if let Some(input) = &mut self.user_input {
                     input.push(c);

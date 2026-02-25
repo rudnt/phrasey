@@ -47,27 +47,27 @@ impl AppState for GameState {
         match event {
             Event::Enter => {
                 trace!("Handling Enter event in GameState");
-                return self.handle_submit_event();
+                self.handle_submit_event()
             }
             Event::Back => {
                 trace!("Going back to main menu");
                 let main_menu_state = MainMenuState::new(self.config.clone())?;
-                return Ok(StateTransition::Transition(Box::new(main_menu_state)));
+                Ok(StateTransition::Transition(Box::new(main_menu_state)))
             }
             Event::Quit => {
                 trace!("Quitting application");
                 let quit_state = QuitState::new(self.config.clone())?;
-                return Ok(StateTransition::Transition(Box::new(quit_state)));
+                Ok(StateTransition::Transition(Box::new(quit_state)))
             }
             Event::RemoveCharacter => {
                 trace!("Handling RemoveCharacter event");
-                return self.handle_remove_character_event();
+                self.handle_remove_character_event()
             }
             Event::Character(c) => {
                 trace!("Handling character input: '{}'", c);
-                return self.handle_character_event(c);
+                self.handle_character_event(c)
             }
-        };
+        }
     }
 
     fn render(&self) -> anyhow::Result<()> {
