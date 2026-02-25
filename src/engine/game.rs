@@ -168,22 +168,22 @@ impl Game {
     /// * `Ok(())` - Successfully advanced to next phrase
     /// * `Err` - If current game state is invalid (e.g., no current phrase index set)
     pub fn advance_phrase(&mut self, is_correct: bool) -> anyhow::Result<()> {
+        // TODO we move iterator forward even if answer correct - we skip a phrase
         let index = self
             .current_phrase_idx
             .context("No current phrase index set")?;
 
         if is_correct {
-            let (phrase, attempts) = self.unrecognized_phrases.remove(index);
-            self.recognized_phrases.push((phrase, attempts));
+            self.recognized_phrases.push(self.unrecognized_phrases.remove(index));
+            if self.unrecognized_phrases.is_empty() {
+                anyhow::bail!("No more phrases available to advance to");
+            } else {
+                self.current_phrase_idx = Some(index % self.unrecognized_phrases.len());
+            }
         } else {
             self.unrecognized_phrases[index].1 += 1;
+            self.current_phrase_idx = Some((index + 1) % self.unrecognized_phrases.len())
         }
-
-        self.current_phrase_idx = if !self.unrecognized_phrases.is_empty() {
-            Some((index + 1) % self.unrecognized_phrases.len())
-        } else {
-            anyhow::bail!("No more phrases available to advance to");
-        };
 
         Ok(())
     }
